@@ -1,10 +1,12 @@
 import { startServer } from './server.js';
 import { refreshReal } from './tuyaWeb.js';
-import { recordSnapshot } from './history.js';
+import { recordSnapshot, readHistory } from './history.js';
+import { pollOnce } from './poller.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const HIST = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../data/history');
+const PROFILE = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../data/profile');
 const port = Number(process.env.PORT || 3001);
 const { url } = await startServer(port);
 console.log(`backend ready at ${url}`);
@@ -17,6 +19,25 @@ const snapOnce = async () => {
 };
 snapOnce();
 setInterval(snapOnce, 5 * 60 * 1000);
+
+let autoOn = process.env.AUTO_POLL !== '0';
+async function autoPoll() {
+  if (!autoOn) return;
+  try {
+    const snap = await pollOnce(PROFILE);
+    if (snap.login) {
+      console.log('tuya login needed — scan QR at /api/qr');
+    } else {
+      snap.source = 'auto-poller';
+      await fetch(`${url}/api/ingest`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(snap) });
+      console.log('auto-poll ok', new Date().toLocaleTimeString());
+    }
+  } catch (e) {
+    console.error('auto-poll failed:', e.message);
+  }
+  setTimeout(autoPoll, 60000);
+}
+setTimeout(autoPoll, 15000);
 try {
   const env = fs.readFileSync(new URL('../../.env', import.meta.url), 'utf8');
   const m = env.match(/TUYA_COOKIE=(.+)/);

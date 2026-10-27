@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pollAll, getReal, getFile } from './tuyaWeb.js';
 import { readHistory } from './history.js';
+import { getQr } from './poller.js';
 
 const FRONT = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../frontend');
 const DATA_HIST = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../data/history');
@@ -40,9 +41,21 @@ export function startServer(port = 0) {
       res.end(body);
       return;
     }
+    if (req.url === '/api/qr' && req.method === 'GET') {
+      const png = getQr();
+      if (!png) { res.writeHead(404); res.end('no qr'); return; }
+      res.writeHead(200, { 'Content-Type': 'image/png', 'Access-Control-Allow-Origin': '*' });
+      res.end(png);
+      return;
+    }
+    if (req.url === '/api/status' && req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+      res.end(JSON.stringify({ loginNeeded: !!getQr() }));
+      return;
+    }
     if (req.url === '/api/devices' && req.method === 'GET') {
       const live = getReal() || getFile();
-      const base = relay && Date.now() - relay.updatedAt < 30000 ? { onCount: (relay.devices || []).filter((d) => d.online).length, ...relay, source: 'browser-relay' } : live || { ...pollAll(), source: 'mock' };
+      const base = relay && Date.now() - relay.updatedAt < 120000 ? { onCount: (relay.devices || []).filter((d) => d.online).length, ...relay, source: relay.source || 'browser-relay' } : live || { ...pollAll(), source: 'mock' };
       const body = JSON.stringify(base);
       res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
       res.end(body);

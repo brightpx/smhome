@@ -45,6 +45,10 @@ async function tick() {
         el.textContent = 'เริ่มจดประวัติแล้ว กราฟจะขึ้นเมื่อมีข้อมูล';
       }
     } catch {}
+    try {
+      const st = await (await fetch('/api/status')).json();
+      document.getElementById('qrbox').innerHTML = st.loginNeeded ? '<div class="panel" style="border-color:rgba(255,159,10,.5);margin-bottom:10px;text-align:center">เชื่อมต่อ Tuya หลุด — เปิดแอป Smart Life สแกน QR นี้<img src="/api/qr?t=' + Date.now() + '" style="max-width:220px;display:block;margin:8px auto;border-radius:12px"></div>' : '';
+    } catch {}
   } catch (e) {
     document.getElementById('live').innerHTML = '<span class="pill off">หลุด — กำลังต่อใหม่</span>';
   }

@@ -1,0 +1,107 @@
+const METER = 'eb0b9857bf4d24e73aujri';
+const INV = 'eb050f906c2cbd90f0vmwd';
+const NAMES = {
+  eb2c311bb821f7630c9wvg: ['Switch 1', 'Switch 2', 'Switch 3'],
+  eb19bec12f89f86d19aff6: ['Switch 1', 'Switch 2', 'Switch 3'],
+  ebdfed963b861a03bfhgfi: ['Switch 1', 'Switch 2', 'Switch 3', 'Switch 4'],
+  eb0e07cbd548caba3ezvyt: ['Switch 1', 'Switch 2', 'Switch 3', 'Switch 4'],
+  eb6830635d5a2f6bc0wycq: ['Circle', 'Downlight', 'ช่อง 3', 'ช่อง 4'],
+  '022553357c87ce8b9eea': ['ไฟกลมหน้า', 'ไฟดาวไลท์'],
+  '022553357c87ce8b9f09': ['ไฟฝ้า', 'ไฟหน้าประตูหลัง', 'ไฟระเบียงหลัง']
+};
+const SW_IDS = Object.keys(NAMES);
+const HEADERS = {
+  'Content-Type': 'application/json;charset=UTF-8',
+  'micro-app-code': '@tuya-fe/smart2c-app-device',
+  'micro-app-id': '2031674305368031282',
+  'project-id': '69459073',
+  'isolation-type': 'homeId',
+  'uid': 'az1650764274804vous3'
+};
+const num = (arr) => {
+  const o = {};
+  for (const e of arr) o[e.code] = e.value_object ?? e.value;
+  return o;
+};
+
+export function parseProps(id, props, names) {
+  const o = num(props);
+  if (id === METER) {
+    return { power: { meter: { powerW: o.p_tot / 10, voltage: o.v / 10, forwardKwh: o.fwd_acc_kwh / 100, reverseKwh: o.rev_acc_kwh / 100 } } };
+  }
+  if (id === INV) {
+    return { power: { solar: { pvW: o.pv_power / 10, acW: o.ac_power / 10, totalKwh: o.power_total / 1000, temp: o.temp_current / 10 } } };
+  }
+  const sw = Object.keys(o).filter((k) => /^switch_\d+$/.test(k)).sort();
+  const count = Math.max(sw.length, (names || []).length);
+  const gangs = [];
+  for (let i = 0; i < count; i++) {
+    gangs.push({ name: (names || [])[i] || ('switch_' + (i + 1)), on: String(o['switch_' + (i + 1)]) === 'true' });
+  }
+  return { gangs };
+}
+
+export function mergeSnapshot(devices, gangsById, power) {
+  let p = null;
+  for (const part of power) p = { ...(p || {}), ...part.power };
+  return {
+    devices: devices.map((d) => ({ ...d, gangs: gangsById[d.id] })),
+    power: p,
+    updatedAt: Date.now()
+  };
+}
+
+let ctx = null;
+let qrShot = null;
+
+export function getQr() {
+  return qrShot;
+}
+
+async function ensurePage() {
+  if (ctx) return ctx.page;
+  const { chromium } = await import('playwright');
+  const browser = await chromium.launch({ headless: true });
+  ctx = { browser, page: await browser.newPage() };
+  return ctx.page;
+}
+
+export async function pollOnce(profileDir) {
+  const { chromium } = await import('playwright');
+  if (!ctx) {
+    const browser = await chromium.launchPersistentContext(profileDir, { headless: true });
+    ctx = { browser, page: browser.pages()[0] || await browser.newPage() };
+  }
+  const page = ctx.page;
+  await page.goto('https://us.device.tuya.ai/apps/2031674305368031282/', { waitUntil: 'domcontentloaded', timeout: 60000 });
+  if (page.url().includes('/login')) {
+    qrShot = await page.screenshot();
+    return { login: true };
+  }
+  qrShot = null;
+  const data = await page.evaluate(async () => {
+    const H = { 'Content-Type': 'application/json;charset=UTF-8', 'micro-app-code': '@tuya-fe/smart2c-app-device', 'micro-app-id': '2031674305368031282', 'project-id': '69459073', 'isolation-type': 'homeId', uid: 'az1650764274804vous3' };
+    const q = await fetch('/open-api/v1.0/m/sdf/device/pag/source-query', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ project_id: '69459073', page_no: 1, page_size: 20 }) });
+    const j = await q.json();
+    const devices = (j.result.data || []).map((d) => ({ id: d.device_id, name: d.device_name, room: d.installation_location, online: d.device_status === 1 }));
+    const props = {};
+    for (const d of devices) {
+      try {
+        const r = await fetch('/open-api/v2.0/m/sdf/ss/devices/properties', { method: 'POST', headers: H, credentials: 'include', body: JSON.stringify({ device_ids: [d.id] }) });
+        const jj = await r.json();
+        props[d.id] = (jj.result || {})[d.id] || [];
+      } catch (e) { props[d.id] = []; }
+    }
+    return { devices, props };
+  });
+  const gangsById = {};
+  const powers = [];
+  for (const d of data.devices) {
+    const r = parseProps(d.id, data.props[d.id] || [], NAMES[d.id]);
+    if (r.gangs) gangsById[d.id] = r.gangs;
+    if (r.power) powers.push(r);
+  }
+  return mergeSnapshot(data.devices, gangsById, powers);
+}
+
+export { NAMES, METER, INV };
