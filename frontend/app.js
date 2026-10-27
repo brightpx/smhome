@@ -43,8 +43,8 @@ async function tick() {
       if ((x.gangs || []).some(g => g.on)) return '<span class="devicon sw">●</span>';
       return '<span class="devicon off">○</span>';
     };
-    const sorted = [...d.devices].sort((a, b) => {
-      const r = (x) => !x.online ? 3 : (x.type === 'meter' || x.type === 'solar') ? 0 : ((x.gangs || []).some(g => g.on) ? 1 : (x.gangs ? 2 : 1));
+    const sorted = [...d.devices].filter(x => x.type !== 'meter' && x.type !== 'solar').sort((a, b) => {
+      const r = (x) => !x.online ? 3 : ((x.gangs || []).some(g => g.on) ? 1 : (x.gangs ? 2 : 1));
       return r(a) - r(b);
     });
     document.getElementById('devices').innerHTML = sorted.map(x => {
