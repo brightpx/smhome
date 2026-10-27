@@ -13,9 +13,13 @@ test('parses properties into gangs and power', async () => {
     { code: 'p_tot', value_object: 3999 },
     { code: 'v', value_object: 2364 },
     { code: 'fwd_acc_kwh', value_object: 2321 },
-    { code: 'rev_acc_kwh', value_object: 32 }
+    { code: 'rev_acc_kwh', value_object: 32 },
+    { code: 'a_i', value_object: 2013 },
+    { code: 'a_pf', value_object: 92 }
   ]);
   assert.equal(m.power.meter.powerW, 399.9);
+  assert.equal(m.power.meter.currentA, 2013);
+  assert.equal(m.power.meter.pf, 0.92);
   const s = parseProps('eb050f906c2cbd90f0vmwd', [
     { code: 'pv_power', value_object: 284 },
     { code: 'ac_power', value_object: 279 },
