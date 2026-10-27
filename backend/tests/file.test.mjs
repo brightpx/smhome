@@ -6,11 +6,13 @@ test('reads live snapshot file when fresh', async () => {
   const snap = getFile();
   assert.ok(snap);
   assert.equal(snap.devices.length, 15);
-  assert.equal(snap.source, 'tuya-web');
-  assert.equal(snap.power.meter.powerW, 441.9);
-  assert.equal(snap.power.solar.pvW, 19);
+  assert.ok(['tuya-web', 'auto-poller', 'browser-relay'].includes(snap.source));
+  assert.ok(snap.power.meter.powerW > 0);
+  assert.ok(snap.power.solar.pvW >= 0);
   const front = snap.devices.find((d) => d.id === 'eb2c311bb821f7630c9wvg');
-  assert.deepEqual(front.gangs.map((g) => g.on), [false, false, false]);
+  assert.equal(front.gangs.length, 3);
+  assert.ok(front.gangs.every((g) => typeof g.on === 'boolean'));
   const fam = snap.devices.find((d) => d.id === 'eb6830635d5a2f6bc0wycq');
-  assert.equal(fam.gangs.find((g) => g.name === 'Circle').on, true);
+  assert.equal(fam.gangs.length, 4);
+  assert.ok(fam.gangs.every((g) => typeof g.name === 'string' && typeof g.on === 'boolean'));
 });

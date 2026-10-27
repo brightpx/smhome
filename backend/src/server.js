@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pollAll, getReal, getFile, enrichDevices, registry } from './tuyaWeb.js';
 import { readHistory } from './history.js';
-import { getQr, refreshQr } from './poller.js';
+import { getQr, refreshQr, tuyaHeaders, getSessionCookies } from './poller.js';
 
 const FRONT = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../frontend');
 const DATA_HIST = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../data/history');
@@ -111,6 +111,27 @@ export function startServer(port = 0) {
         } catch {}
       }, 5000);
       req.on('close', () => clearInterval(timer));
+      return;
+    }
+    if (pathname.startsWith('/apps/') || pathname.startsWith('/open-api/') || pathname.startsWith('/api/')) {
+      (async () => {
+        try {
+          const chunks = [];
+          for await (const c of req) chunks.push(c);
+          const q = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+          const r = await fetch('https://us.device.tuya.ai' + pathname + q, {
+            method: req.method,
+            headers: tuyaHeaders(req.headers, getSessionCookies()),
+            body: ['GET', 'HEAD'].includes(req.method) ? undefined : Buffer.concat(chunks)
+          });
+          const buf = Buffer.from(await r.arrayBuffer());
+          res.writeHead(r.status, { 'Content-Type': r.headers.get('content-type') || 'application/octet-stream', 'Access-Control-Allow-Origin': '*' });
+          res.end(buf);
+        } catch (e) {
+          res.writeHead(502);
+          res.end('proxy error');
+        }
+      })();
       return;
     }
     res.writeHead(404);

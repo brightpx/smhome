@@ -59,6 +59,44 @@ export function getQr() {
   return qrShot;
 }
 
+export function buildCookieHeader(cookies) {
+  return (cookies || []).filter((c) => (c.domain || '').includes('tuya.ai')).map((c) => c.name + '=' + c.value).join('; ');
+}
+
+export function tuyaHeaders(incoming, sessionCookie) {
+  const h = { ...(incoming || {}) };
+  delete h.host;
+  delete h['content-length'];
+  delete h.connection;
+  h.origin = 'https://us.device.tuya.ai';
+  h.referer = 'https://us.device.tuya.ai/apps/2031674305368031282/';
+  if (sessionCookie) h.cookie = sessionCookie;
+  return h;
+}
+
+let sessionCookies = '';
+
+export function setSessionCookies(s) {
+  sessionCookies = s;
+}
+
+export function getSessionCookies() {
+  return sessionCookies;
+}
+
+async function refreshSessionCookies() {
+  try {
+    if (ctx && ctx.browser && ctx.browser.contexts) {
+      const all = [];
+      for (const c of ctx.browser.contexts()) {
+        try { all.push(...(await c.cookies())); } catch {}
+      }
+      if (all.length) sessionCookies = buildCookieHeader(all);
+    }
+  } catch {}
+  return sessionCookies;
+}
+
 export async function refreshQr() {
   try {
     if (!qrPage) return null;
@@ -106,6 +144,7 @@ export async function pollOnce(profileDir) {
   }
   const page = ctx.page;
   await page.goto('https://us.device.tuya.ai/apps/2031674305368031282/', { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await refreshSessionCookies();
   if (page.url().includes('/login')) {
     qrPage = page;
     qrShot = await pageShot(page);
