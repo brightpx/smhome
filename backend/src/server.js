@@ -13,7 +13,13 @@ export function startServer(port = 0) {
   const subs = [];
   let relay = null;
   const server = http.createServer((req, res) => {
-    if (req.url === '/' || req.url === '/index.html') req.url = '/index.html';
+    const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' };
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204, cors);
+      res.end();
+      return;
+    }
+    if (req.url === '/' ) req.url = '/index.html';
     if (req.method === 'GET' && ['/index.html', '/app.js', '/theme.css', '/manifest.json'].includes(req.url)) {
       try {
         const rel = req.url === '/theme.css' ? 'src/theme.css' : req.url.slice(1);
@@ -30,7 +36,7 @@ export function startServer(port = 0) {
     }
     if (req.url === '/api/history' && req.method === 'GET') {
       const body = JSON.stringify(readHistory(DATA_HIST));
-      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
       res.end(body);
       return;
     }
@@ -38,7 +44,7 @@ export function startServer(port = 0) {
       const live = getReal() || getFile();
       const base = relay && Date.now() - relay.updatedAt < 30000 ? { ...relay, source: 'browser-relay' } : live || { ...pollAll(), source: 'mock' };
       const body = JSON.stringify(base);
-      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
       res.end(body);
       return;
     }
@@ -50,7 +56,7 @@ export function startServer(port = 0) {
           relay = JSON.parse(data || '{}');
           relay.updatedAt = relay.updatedAt || Date.now();
         } catch {}
-        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
         res.end(JSON.stringify({ ok: true }));
       });
       return;
