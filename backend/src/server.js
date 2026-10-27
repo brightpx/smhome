@@ -15,15 +15,17 @@ export function startServer(port = 0) {
   let relay = null;
   const server = http.createServer((req, res) => {
     const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' };
+    let pathname = req.url.split('?')[0];
+    if (pathname === '/') pathname = '/index.html';
     if (req.method === 'OPTIONS') {
       res.writeHead(204, cors);
       res.end();
       return;
     }
-    if (req.url === '/' ) req.url = '/index.html';
-    if (req.method === 'GET' && ['/index.html', '/app.js', '/theme.css', '/manifest.json'].includes(req.url)) {
+    if (pathname === '/') pathname = '/index.html';
+    if (req.method === 'GET' && ['/index.html', '/app.js', '/theme.css', '/manifest.json'].includes(pathname)) {
       try {
-        const rel = req.url === '/theme.css' ? 'src/theme.css' : req.url.slice(1);
+        const rel = pathname === '/theme.css' ? 'src/theme.css' : pathname.slice(1);
         const file = path.join(FRONT, rel);
         const data = fs.readFileSync(file);
         res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream' });
@@ -35,13 +37,13 @@ export function startServer(port = 0) {
         return;
       }
     }
-    if (req.url === '/api/history' && req.method === 'GET') {
+    if (pathname === '/api/history' && req.method === 'GET') {
       const body = JSON.stringify(readHistory(DATA_HIST));
       res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
       res.end(body);
       return;
     }
-    if (req.url === '/api/qr' && req.method === 'GET') {
+    if (pathname === '/api/qr' && req.method === 'GET') {
       refreshQr().then((png) => {
         if (!png) { res.writeHead(404); res.end('no qr'); return; }
         res.writeHead(200, { 'Content-Type': 'image/png', 'Access-Control-Allow-Origin': '*' });
@@ -49,12 +51,12 @@ export function startServer(port = 0) {
       }).catch(() => { res.writeHead(404); res.end('no qr'); });
       return;
     }
-    if (req.url === '/api/status' && req.method === 'GET') {
+    if (pathname === '/api/status' && req.method === 'GET') {
       res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
       res.end(JSON.stringify({ loginNeeded: !!getQr() }));
       return;
     }
-    if (req.url === '/api/devices' && req.method === 'GET') {
+    if (pathname === '/api/devices' && req.method === 'GET') {
       const live = getReal() || getFile();
       const base = relay && Date.now() - relay.updatedAt < 120000 ? { onCount: (relay.devices || []).filter((d) => d.online).length, ...relay, source: relay.source || 'browser-relay' } : live || { ...pollAll(), source: 'mock' };
       const body = JSON.stringify(base);
@@ -62,7 +64,7 @@ export function startServer(port = 0) {
       res.end(body);
       return;
     }
-    if (req.url === '/api/ingest' && req.method === 'POST') {
+    if (pathname === '/api/ingest' && req.method === 'POST') {
       let data = '';
       req.on('data', (c) => (data += c));
       req.on('end', () => {
@@ -75,7 +77,7 @@ export function startServer(port = 0) {
       });
       return;
     }
-    if (req.url === '/api/clientlog' && req.method === 'POST') {
+    if (pathname === '/api/clientlog' && req.method === 'POST') {
       let data = '';
       req.on('data', (c) => (data += c));
       req.on('end', () => {
@@ -85,7 +87,7 @@ export function startServer(port = 0) {
       });
       return;
     }
-    if (req.url === '/api/push/subscribe' && req.method === 'POST') {
+    if (pathname === '/api/push/subscribe' && req.method === 'POST') {
       let data = '';
       req.on('data', (c) => (data += c));
       req.on('end', () => {
@@ -97,7 +99,7 @@ export function startServer(port = 0) {
       });
       return;
     }
-    if (req.url === '/api/events') {
+    if (pathname === '/api/events') {
       res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
       res.write('retry: 5000\n\n');
       const timer = setInterval(() => {
