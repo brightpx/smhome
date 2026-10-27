@@ -5,7 +5,7 @@ async function tick() {
     const p = d.power || {};
     const solarW = p.solar ? p.solar.acW : null;
     const homeW = p.meter ? p.meter.powerW : null;
-    const solar = solarW == null ? '—' : (solarW / 1000).toFixed(2) + '<small>kW</small>';
+    const solar = solarW == null ? '—' : Math.round(solarW) + '<small>W</small>';
     const home = homeW == null ? '—' : (homeW / 1000).toFixed(2) + '<small>kW</small>';
     let gridTxt = '—', gridLbl = 'รอข้อมูล', gridCol = '#b6c2d3';
     if (solarW != null && homeW != null) {
