@@ -1,3 +1,13 @@
+async function showLog(id, name) {
+  document.getElementById('mTitle').textContent = name;
+  document.getElementById('mFull').href = '/apps/2031674305368031282/log?device_id=' + id;
+  document.getElementById('modal').style.display = 'block';
+  document.getElementById('mBody').textContent = 'โหลด…';
+  try {
+    const log = await (await fetch('/api/devicelog?dev_id=' + id)).json();
+    document.getElementById('mBody').innerHTML = log.length ? log.map(e => '<div class="row"><span>' + e.detail + '</span><span class="staleTag">' + new Date(e.t).toLocaleString('th-TH') + '</span></div>').join('') : 'ยังไม่มีเหตุการณ์ตั้งแต่เริ่มจด (จดทุกครั้งที่สถานะเปลี่ยน)';
+  } catch (e) { document.getElementById('mBody').textContent = 'โหลดไม่ได้'; }
+}
 async function tick() {
   try {
     document.getElementById('ver').textContent = 'js: ok ' + new Date().toLocaleTimeString('th-TH');
@@ -52,7 +62,7 @@ async function tick() {
       const badge = !x.online ? '<span class="pill off">offline</span>' : on > 0 ? '<span class="pill on">เปิด ' + on + '</span>' : (x.gangs ? '<span class="staleTag">ปิดหมด</span>' : '<span class="staleTag">online</span>');
       const gangs = (x.gangs || []).map(g => '<div class="row"><span class="gang">↳ ' + g.name + '</span><span class="tgl' + (g.on ? ' on' : '') + '"><i></i></span></div>').join('');
       const extra = !x.gangs ? (x.type === 'meter' && p.meter ? '<div class="row"><span class="gang">↳ กำลังไฟ</span><span>' + p.meter.powerW + ' W</span></div>' : x.type === 'solar' && p.solar ? '<div class="row"><span class="gang">↳ ผลิต</span><span>' + p.solar.acW + ' W</span></div>' : '') : '';
-      return '<div class="panel devcard' + (!x.online ? ' dim' : '') + '"><div class="row dev devhead">' + iconFor(x) + '<span style="flex:1">' + x.name + '<br><span class="staleTag">' + x.room + '</span></span>' + badge + '</div>' + gangs + extra + '</div>';
+      return '<div class="panel devcard' + (!x.online ? ' dim' : '') + '" onclick="showLog(\'' + x.id + '\',\'' + x.name.replace(/'/g, '') + '\')" style="cursor:pointer"><div class="row dev devhead">' + iconFor(x) + '<span style="flex:1">' + x.name + '<br><span class="staleTag">' + x.room + '</span></span>' + badge + '</div>' + gangs + extra + '</div>';
     }).join('');
     try {
       const st = await (await fetch('/api/status')).json();

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { pollAll, getReal, getFile, enrichDevices, registry } from './tuyaWeb.js';
 import { readHistory } from './history.js';
 import { getQr, refreshQr, tuyaHeaders, getSessionCookies } from './poller.js';
+import { diffSnapshots } from './changes.js';
 
 const FRONT = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../frontend');
 const DATA_HIST = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../data/history');
@@ -14,6 +15,16 @@ export function startServer(port = 0) {
   const subs = [];
   let relay = null;
   const server = http.createServer((req, res) => {
+    const DEVLOG = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../data/device-log.jsonl');
+    const appendEvents = (events) => {
+      if (!events.length) return;
+      try {
+        fs.mkdirSync(path.dirname(DEVLOG), { recursive: true });
+        fs.appendFileSync(DEVLOG, events.map((e) => JSON.stringify(e)).join('\n') + '\n');
+        const lines = fs.readFileSync(DEVLOG, 'utf8').trim().split('\n');
+        if (lines.length > 2000) fs.writeFileSync(DEVLOG, lines.slice(-2000).join('\n') + '\n');
+      } catch {}
+    };
     const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' };
     let pathname = req.url.split('?')[0];
     if (pathname === '/') pathname = '/index.html';
@@ -36,6 +47,21 @@ export function startServer(port = 0) {
         res.end('not found');
         return;
       }
+    }
+    if (pathname === '/api/devicelog' && req.method === 'GET') {
+      try {
+        const u = new URL(req.url, 'http://x');
+        const id = u.searchParams.get('dev_id');
+        const raw = fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '../../data/device-log.jsonl'), 'utf8').trim();
+        const rows = raw ? raw.split('\n').map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean) : [];
+        const out = (id ? rows.filter((e) => e.device_id === id) : rows).slice(-50).reverse();
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+        res.end(JSON.stringify(out));
+      } catch {
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+        res.end('[]');
+      }
+      return;
     }
     if (pathname === '/api/history' && req.method === 'GET') {
       const body = JSON.stringify(readHistory(DATA_HIST));
@@ -71,9 +97,15 @@ export function startServer(port = 0) {
       req.on('data', (c) => (data += c));
       req.on('end', () => {
         try {
-          relay = JSON.parse(data || '{}');
-          relay.updatedAt = relay.updatedAt || Date.now();
-          if (relay.devices) relay.devices = enrichDevices(relay.devices, registry());
+          const incoming = JSON.parse(data || '{}');
+          incoming.updatedAt = incoming.updatedAt || Date.now();
+          if (incoming.devices) {
+            incoming.devices = enrichDevices(incoming.devices, registry());
+            if (relay && relay.devices) appendEvents(diffSnapshots(relay, incoming));
+            relay = incoming;
+          } else {
+            relay = incoming;
+          }
         } catch {}
         res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
         res.end(JSON.stringify({ ok: true }));
