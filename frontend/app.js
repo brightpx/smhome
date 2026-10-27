@@ -50,7 +50,10 @@ async function tick() {
       document.getElementById('qrbox').innerHTML = st.loginNeeded ? '<div class="panel" style="border-color:rgba(255,159,10,.5);margin-bottom:10px;text-align:center">เชื่อมต่อ Tuya หลุด — เปิดแอป Smart Life สแกน QR นี้<img src="/api/qr?t=' + Date.now() + '" style="max-width:220px;display:block;margin:8px auto;border-radius:12px"></div>' : '';
     } catch {}
   } catch (e) {
+    const msg = 'โหลดไม่เข้า: ' + (e && e.message ? e.message : e);
     document.getElementById('live').innerHTML = '<span class="pill off">หลุด — กำลังต่อใหม่</span>';
+    document.getElementById('warn').innerHTML = '<div class="panel" style="border-color:rgba(255,69,58,.5)">' + msg + ' • เปิดด้วย http://127.0.0.1:3001/ นะ ไม่ใช่ไฟล์</div>';
+    try { fetch('/api/clientlog', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ msg, url: location.href }) }); } catch {}
   }
   setTimeout(tick, 5000);
   setTimeout(() => document.body.classList.add('seen'), 800);

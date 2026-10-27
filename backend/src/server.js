@@ -75,6 +75,16 @@ export function startServer(port = 0) {
       });
       return;
     }
+    if (req.url === '/api/clientlog' && req.method === 'POST') {
+      let data = '';
+      req.on('data', (c) => (data += c));
+      req.on('end', () => {
+        try { fs.appendFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '../../data/client.log'), new Date().toISOString() + ' ' + data.slice(0, 500) + '\n'); } catch {}
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+        res.end(JSON.stringify({ ok: true }));
+      });
+      return;
+    }
     if (req.url === '/api/push/subscribe' && req.method === 'POST') {
       let data = '';
       req.on('data', (c) => (data += c));
