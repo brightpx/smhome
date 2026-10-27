@@ -30,7 +30,7 @@ async function tick() {
       + '<text x="45" y="108" text-anchor="middle" fill="#facc15" font-weight="800" font-size="15">' + solarTxt + '</text><text x="45" y="124" text-anchor="middle" fill="#b6c2d3" font-size="10">โซล่า BFAD</text>'
       + '<text x="180" y="108" text-anchor="middle" fill="#fff" font-weight="800" font-size="15">' + homeTxt + '</text><text x="180" y="124" text-anchor="middle" fill="#b6c2d3" font-size="10">ใช้ในบ้าน</text>'
       + '<text x="315" y="108" text-anchor="middle" fill="' + gridCol + '" font-weight="800" font-size="15">' + gridTxt + '</text><text x="315" y="124" text-anchor="middle" fill="#b6c2d3" font-size="10">' + gridLbl + '</text></svg>'
-      + (p.meter ? '<div class="staleTag">ไฟ ' + p.meter.voltage + 'V • ใช้สะสม ' + p.meter.forwardKwh + ' kWh • โซล่าสะสม ' + p.solar.totalKwh + ' kWh</div>' : '<div class="staleTag">ค่า mock — รอข้อมูลมิเตอร์</div>') + '<div id="chart" class="staleTag">โหลดกราฟ…</div>';
+      + (p.meter ? '<div class="staleTag">ไฟ ' + p.meter.voltage + 'V • ใช้สะสม ' + p.meter.forwardKwh + ' kWh</div>' : '<div class="staleTag">ค่า mock — รอข้อมูลมิเตอร์</div>');
     const onGangs = d.devices.flatMap(x => x.gangs || []).filter(g => g.on).length;
     const offCount = d.devices.length - d.onCount;
     document.getElementById('devTitle').textContent = 'ออนไลน์ ' + d.onCount + ' • เปิดจริง ' + onGangs + ' ช่อง • ดับ ' + offCount;
@@ -54,17 +54,6 @@ async function tick() {
       const extra = !x.gangs ? (x.type === 'meter' && p.meter ? '<div class="row"><span class="gang">↳ กำลังไฟ</span><span>' + p.meter.powerW + ' W</span></div>' : x.type === 'solar' && p.solar ? '<div class="row"><span class="gang">↳ ผลิต</span><span>' + p.solar.acW + ' W</span></div>' : '') : '';
       return '<div class="panel devcard' + (!x.online ? ' dim' : '') + '"><div class="row dev devhead">' + iconFor(x) + '<span style="flex:1">' + x.name + '<br><span class="staleTag">' + x.room + '</span></span>' + badge + '</div>' + gangs + extra + '</div>';
     }).join('');
-    try {
-      const h = await (await fetch('/api/history')).json();
-      const el = document.getElementById('chart');
-      if (el && h.length) {
-        const last = h.slice(-24);
-        const max = Math.max.apply(null, last.map(e => e.meterW || 0).concat([1]));
-        el.innerHTML = 'ใช้ไฟ 2 ชม.ล่าสุด: <span class="bars">' + last.map(e => '<i style="height:' + Math.max(2, Math.round((e.meterW || 0) / max * 28)) + 'px" title="' + e.meterW + 'W"></i>').join('') + '</span> <span class="staleTag">' + h.length + ' จุด</span>';
-      } else if (el) {
-        el.textContent = 'เริ่มจดประวัติแล้ว กราฟจะขึ้นเมื่อมีข้อมูล';
-      }
-    } catch {}
     try {
       const st = await (await fetch('/api/status')).json();
       document.getElementById('qrbox').innerHTML = st.loginNeeded ? '<div class="panel" style="border-color:rgba(255,159,10,.5);margin-bottom:10px;text-align:center">เชื่อมต่อ Tuya หลุด — เปิดแอป Smart Life สแกน QR นี้<img src="/api/qr?t=' + Date.now() + '" style="max-width:220px;display:block;margin:8px auto;border-radius:12px"></div>' : '';
