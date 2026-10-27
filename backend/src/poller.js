@@ -86,13 +86,17 @@ export function getSessionCookies() {
 
 async function refreshSessionCookies() {
   try {
-    if (ctx && ctx.browser && ctx.browser.contexts) {
-      const all = [];
-      for (const c of ctx.browser.contexts()) {
+    const b = ctx && ctx.browser;
+    if (!b) return sessionCookies;
+    let all = [];
+    if (typeof b.cookies === 'function') {
+      all = await b.cookies();
+    } else if (typeof b.contexts === 'function') {
+      for (const c of b.contexts()) {
         try { all.push(...(await c.cookies())); } catch {}
       }
-      if (all.length) sessionCookies = buildCookieHeader(all);
     }
+    if (all.length) sessionCookies = buildCookieHeader(all);
   } catch {}
   return sessionCookies;
 }
