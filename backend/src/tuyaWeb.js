@@ -16,6 +16,20 @@ export const DEVICES = [
   { id: 'eb9f9967accfa76ea2l1uc', name: 'Smart remote control', room: 'ห้องครอบครัว', type: 'remote', online: false }
 ];
 
+import fs from 'node:fs';
+
+export function getFile(maxAgeMs = 3600000) {
+  try {
+    const p = new URL('../../data/live.json', import.meta.url);
+    const raw = fs.readFileSync(p, 'utf8');
+    const snap = JSON.parse(raw);
+    if (Date.now() - snap.updatedAt > maxAgeMs) return null;
+    return snap;
+  } catch {
+    return null;
+  }
+}
+
 export function guessType(d) {
   const t = `${d.device_type || ''} ${d.pid || ''}`.toLowerCase();
   if (t.includes('meter')) return 'meter';
