@@ -16,6 +16,46 @@ export const DEVICES = [
   { id: 'eb9f9967accfa76ea2l1uc', name: 'Smart remote control', room: 'ห้องครอบครัว', type: 'remote', online: false }
 ];
 
+export function guessType(d) {
+  const t = `${d.device_type || ''} ${d.pid || ''}`.toLowerCase();
+  if (t.includes('meter')) return 'meter';
+  if (t.includes('inverter')) return 'solar';
+  if (t.includes('breaker') || t.includes('switch')) return 'switch';
+  if (t.includes('socket')) return 'socket';
+  if (t.includes('light') || t.includes('strip')) return 'light';
+  return 'other';
+}
+
+export async function fetchDevices({ cookie, fetchFn = fetch }) {
+  const res = await fetchFn('https://us.device.tuya.ai/open-api/v1.0/m/sdf/device/pag/source-query', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: cookie },
+    body: JSON.stringify({ project_id: '69459073', page_no: 1, page_size: 20 })
+  });
+  if (!res.ok) throw new Error(`tuya ${res.status}`);
+  const j = await res.json();
+  return (j.result.data || []).map((d) => ({
+    id: d.device_id,
+    name: d.device_name,
+    room: d.installation_location,
+    type: guessType(d),
+    online: d.device_status === 1
+  }));
+}
+
+let realCache = null;
+
+export async function refreshReal(cookie) {
+  if (!cookie) return null;
+  const devices = await fetchDevices({ cookie });
+  realCache = { devices, onCount: devices.filter((d) => d.online).length, updatedAt: Date.now(), stale: false, source: 'tuya-web' };
+  return realCache;
+}
+
+export function getReal() {
+  if (realCache && Date.now() - realCache.updatedAt < 30000) return realCache;
+  return null;
+}
 export function pollAll() {
   const updatedAt = Date.now();
   const onCount = DEVICES.filter((d) => d.online).length;

@@ -1,12 +1,13 @@
 import http from 'node:http';
-import { pollAll } from './tuyaWeb.js';
+import { pollAll, getReal } from './tuyaWeb.js';
 
 export function startServer(port = 0) {
   const subs = [];
   let relay = null;
   const server = http.createServer((req, res) => {
     if (req.url === '/api/devices' && req.method === 'GET') {
-      const base = relay && Date.now() - relay.updatedAt < 30000 ? { ...relay, source: 'browser-relay' } : { ...pollAll(), source: 'mock' };
+      const live = getReal();
+      const base = relay && Date.now() - relay.updatedAt < 30000 ? { ...relay, source: 'browser-relay' } : live || { ...pollAll(), source: 'mock' };
       const body = JSON.stringify(base);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(body);
