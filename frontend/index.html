@@ -32,6 +32,16 @@ body{font-family:system-ui;margin:0;padding:12px 12px 96px;max-width:820px;margi
 .devcard{animation:none}
 body:not(.seen) .devcard{animation:rise .45s ease both}
 .devcard.dim{opacity:.55}
+.devhead{display:flex;align-items:center;gap:8px}
+.devicon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex:none}
+.devicon.meter{background:rgba(10,132,255,.15);color:#5eb0ff}
+.devicon.solar{background:rgba(250,204,21,.15);color:#facc15}
+.devicon.sw{background:rgba(48,209,88,.12);color:#30d158}
+.devicon.off{background:rgba(255,255,255,.06);color:#8a93a3}
+.tgl{width:40px;height:23px;border-radius:999px;background:rgba(255,255,255,.14);position:relative;flex:none;transition:background .2s}
+.tgl i{position:absolute;top:2.5px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s}
+.tgl.on{background:#30d158}
+.tgl.on i{left:19px}
 @keyframes rise{from{opacity:0;transform:translateY(10px)}}
 .bars i{animation:grow .5s ease both}
 @keyframes grow{from{transform:scaleY(0)}}
