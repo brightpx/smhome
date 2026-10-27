@@ -15,6 +15,9 @@ async function tick() {
       gridCol = grid <= 0 ? '#30d158' : '#0a84ff';
     }
     document.getElementById('live').innerHTML = '<span class="live"><span class="dot"></span>LIVE</span> <span class="staleTag">' + new Date(d.updatedAt).toLocaleTimeString('th-TH') + ' • ' + d.source + '</span>';
+    const ageMin = Math.floor((Date.now() - d.updatedAt) / 60000);
+    const staleBanner = ageMin >= 15 ? '<div class="panel" style="border-color:rgba(255,159,10,.5);margin-bottom:10px">ข้อมูลเก่า ' + ageMin + ' นาทีแล้ว — backend ยังไม่ได้รอบใหม่ กดรีเฟรชหน้านี้ไม่ช่วย ต้องป้อนข้อมูลใหม่</div>' : '';
+    document.getElementById('warn').innerHTML = staleBanner;
     document.getElementById('flow').innerHTML = '<div class="flowNums"><div><div class="v" style="color:#facc15">' + solar + '</div><div class="staleTag">โซล่า BFAD</div></div><div class="arr">→</div><div><div class="v">' + home + '</div><div class="staleTag">ใช้ในบ้าน</div></div><div class="arr">→</div><div><div class="v" style="color:' + gridCol + '">' + gridTxt + '</div><div class="staleTag">' + gridLbl + '</div></div></div>' + (p.meter ? '<div class="staleTag">ไฟ ' + p.meter.voltage + 'V • ใช้สะสม ' + p.meter.forwardKwh + ' kWh • โซล่าสะสม ' + p.solar.totalKwh + ' kWh</div>' : '<div class="staleTag">ค่า mock — รอข้อมูลมิเตอร์</div>') + '<div id="chart" class="staleTag">โหลดกราฟ…</div>';
     const onGangs = d.devices.flatMap(x => x.gangs || []).filter(g => g.on).length;
     const offCount = d.devices.length - d.onCount;
