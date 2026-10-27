@@ -19,7 +19,7 @@ test('serves frontend page with flow and devices', async () => {
     assert.ok(css.includes('.td-title'));
     const page = await (await fetch(`${url}/`)).text();
     assert.ok(page.includes('1024px'));
-    assert.ok(page.includes('us.device.tuya.ai'));
+    assert.ok(page.includes('/apps/2031674305368031282/'));
     const hist = await (await fetch(`${url}/api/history`)).json();
     assert.ok(Array.isArray(hist));
   } finally {
