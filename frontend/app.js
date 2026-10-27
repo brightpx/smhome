@@ -20,7 +20,7 @@ async function tick() {
     const solarTxt = solarW == null ? '—' : Math.round(solarW) + ' W';
     const homeTxt = homeW == null ? '—' : (homeW / 1000).toFixed(2) + ' kW';
     const gridDirExport = solarW != null && homeW != null && (homeW - solarW) <= 0;
-    document.getElementById('flow').innerHTML = '<svg viewBox="0 0 360 150" style="width:100%;height:auto;display:block" role="img" aria-label="energy flow">'
+    document.getElementById('flow').innerHTML = '<svg viewBox="0 0 360 132" style="width:100%;max-width:330px;height:auto;display:block;margin:0 auto" role="img" aria-label="energy flow">'
       + '<defs><marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="none" stroke="#888" stroke-width="1.2"/></marker></defs>'
       + '<circle cx="45" cy="60" r="24" fill="rgba(250,204,21,.15)" stroke="#facc15" stroke-width="2"/><text x="45" y="66" text-anchor="middle" font-size="18">☀</text>'
       + '<rect x="155" y="36" width="50" height="48" rx="10" fill="rgba(10,132,255,.12)" stroke="#0a84ff" stroke-width="2"/><text x="180" y="64" text-anchor="middle" font-size="20">⌂</text>'
