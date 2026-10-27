@@ -1,6 +1,6 @@
 :root { color-scheme: dark; --accent: #0a84ff; --profit: #30d158; --loss: #ff453a; }
 body { background: #000; color: #e2e8f0; background-image: radial-gradient(60rem 40rem at 85% -10%, rgba(10,132,255,.16), transparent 60%), radial-gradient(50rem 36rem at -15% 30%, rgba(94,92,230,.13), transparent 60%); }
-.panel { background: linear-gradient(160deg, rgba(255,255,255,.085), rgba(255,255,255,.03) 45%, rgba(255,255,255,.055)); backdrop-filter: blur(10px) saturate(150%); border: 1px solid rgba(255,255,255,.12); border-radius: 1rem; padding: 1rem; }
+.panel { background: linear-gradient(160deg, rgba(255,255,255,.085), rgba(255,255,255,.03) 45%, rgba(255,255,255,.055)); -webkit-backdrop-filter: blur(10px) saturate(150%); backdrop-filter: blur(10px) saturate(150%); border: 1px solid rgba(255,255,255,.12); border-top-color: rgba(255,255,255,.22); border-radius: 1rem; padding: 1rem; min-width: 0; box-shadow: 0 8px 32px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.12); padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px)); }
 .grid { display: grid; gap: 10px; grid-template-columns: 1fr; }
 @media (min-width: 700px) { .grid { grid-template-columns: 1.2fr 1fr; } }
 button { min-height: 44px; }

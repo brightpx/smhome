@@ -2,18 +2,35 @@ import http from 'node:http';
 import { pollAll } from './tuyaWeb.js';
 
 export function startServer(port = 0) {
+  const subs = [];
   const server = http.createServer((req, res) => {
-    if (req.url === '/api/devices') {
+    if (req.url === '/api/devices' && req.method === 'GET') {
       const body = JSON.stringify(pollAll());
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(body);
       return;
     }
+    if (req.url === '/api/push/subscribe' && req.method === 'POST') {
+      let data = '';
+      req.on('data', (c) => (data += c));
+      req.on('end', () => {
+        try {
+          subs.push(JSON.parse(data || '{}'));
+        } catch {}
+        res.writeHead(201, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, count: subs.length }));
+      });
+      return;
+    }
     if (req.url === '/api/events') {
       res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
-      const payload = `data: ${JSON.stringify(pollAll())}\n\n`;
-      res.write(payload);
-      res.end();
+      res.write('retry: 5000\n\n');
+      const timer = setInterval(() => {
+        try {
+          res.write(`data: ${JSON.stringify(pollAll())}\n\n`);
+        } catch {}
+      }, 5000);
+      req.on('close', () => clearInterval(timer));
       return;
     }
     res.writeHead(404);
