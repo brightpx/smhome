@@ -36,6 +36,14 @@ body:not(.seen) .devcard{animation:rise .45s ease both}
 @keyframes grow{from{transform:scaleY(0)}}
 .bars i{transform-origin:bottom}
 @media(min-width:700px){.cols{display:grid;grid-template-columns:1.2fr 1fr;gap:10px}}
+@media(min-width:1024px){
+body{max-width:1240px;padding:24px 24px 96px}
+.topbar{font-size:18px}
+.flowNums .v{font-size:30px}
+.cols{display:block}
+#devices{grid-template-columns:repeat(3,1fr)}
+.devcard{font-size:14px}
+}
 </style>
 </head>
 <body>
