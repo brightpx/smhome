@@ -3,9 +3,18 @@ async function showLog(id, name) {
   document.getElementById('mFull').href = '/apps/2031674305368031282/log?device_id=' + id;
   document.getElementById('modal').style.display = 'block';
   document.getElementById('mBody').textContent = 'โหลด…';
+  const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const row = (a, b) => '<div class="row"><span>' + esc(a) + '</span><span class="staleTag">' + esc(b) + '</span></div>';
+  try {
+    const live = await (await fetch('/api/tuyalog?dev_id=' + id + '&hours=24')).json();
+    if (Array.isArray(live) && live.length) {
+      document.getElementById('mBody').innerHTML = live.map(e => row(e.event_name || e.dp_name || e.name || '?', (e.event_detail ?? e.value ?? '') + ' • ' + new Date(e.event_time || e.time || Date.now()).toLocaleString('th-TH'))).join('');
+      return;
+    }
+  } catch (e) {}
   try {
     const log = await (await fetch('/api/devicelog?dev_id=' + id)).json();
-    document.getElementById('mBody').innerHTML = log.length ? log.map(e => '<div class="row"><span>' + e.detail + '</span><span class="staleTag">' + new Date(e.t).toLocaleString('th-TH') + '</span></div>').join('') : 'ยังไม่มีเหตุการณ์ตั้งแต่เริ่มจด (จดทุกครั้งที่สถานะเปลี่ยน)';
+    document.getElementById('mBody').innerHTML = log.length ? log.map(e => row(e.detail, new Date(e.t).toLocaleString('th-TH'))).join('') : 'ยังไม่มีเหตุการณ์ตั้งแต่เริ่มจด (จดทุกครั้งที่สถานะเปลี่ยน)';
   } catch (e) { document.getElementById('mBody').textContent = 'โหลดไม่ได้'; }
 }
 async function tick() {

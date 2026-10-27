@@ -84,6 +84,26 @@ export function getSessionCookies() {
   return sessionCookies;
 }
 
+export async function tuyaLog(devId, hours = 24) {
+  await refreshSessionCookies();
+  const end = Date.now();
+  const start = end - hours * 3600 * 1000;
+  const params = new URLSearchParams({ dev_id: devId, start_time: String(start), end_time: String(end) });
+  const r = await fetch('https://us.device.tuya.ai/open-api/v1.0/m/sdf/device/log/query?' + params, {
+    headers: {
+      'micro-app-code': '@tuya-fe/smart2c-app-device',
+      'micro-app-id': '2031674305368031282',
+      'project-id': '69459073',
+      'isolation-type': 'homeId',
+      uid: 'az1650764274804vous3',
+      cookie: sessionCookies
+    }
+  });
+  if (!r.ok) throw new Error('tuya ' + r.status);
+  const j = await r.json();
+  return (j.result && j.result.data) || [];
+}
+
 async function refreshSessionCookies() {
   try {
     const b = ctx && ctx.browser;
