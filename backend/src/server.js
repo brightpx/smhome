@@ -3,8 +3,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pollAll, getReal, getFile } from './tuyaWeb.js';
+import { readHistory } from './history.js';
 
 const FRONT = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../frontend');
+const DATA_HIST = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../data/history');
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'application/javascript', '.css': 'text/css', '.json': 'application/json' };
 
 export function startServer(port = 0) {
@@ -25,6 +27,12 @@ export function startServer(port = 0) {
         res.end('not found');
         return;
       }
+    }
+    if (req.url === '/api/history' && req.method === 'GET') {
+      const body = JSON.stringify(readHistory(DATA_HIST));
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(body);
+      return;
     }
     if (req.url === '/api/devices' && req.method === 'GET') {
       const live = getReal() || getFile();

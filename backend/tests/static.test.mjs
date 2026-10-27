@@ -13,6 +13,8 @@ test('serves frontend page with flow and devices', async () => {
     const css = await (await fetch(`${url}/theme.css`)).text();
     assert.ok(css.includes('.panel'));
     assert.ok(css.includes('.td-title'));
+    const hist = await (await fetch(`${url}/api/history`)).json();
+    assert.ok(Array.isArray(hist));
   } finally {
     await close();
   }
