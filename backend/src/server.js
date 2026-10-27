@@ -3,11 +3,26 @@ import { pollAll } from './tuyaWeb.js';
 
 export function startServer(port = 0) {
   const subs = [];
+  let relay = null;
   const server = http.createServer((req, res) => {
     if (req.url === '/api/devices' && req.method === 'GET') {
-      const body = JSON.stringify(pollAll());
+      const base = relay && Date.now() - relay.updatedAt < 30000 ? { ...relay, source: 'browser-relay' } : { ...pollAll(), source: 'mock' };
+      const body = JSON.stringify(base);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(body);
+      return;
+    }
+    if (req.url === '/api/ingest' && req.method === 'POST') {
+      let data = '';
+      req.on('data', (c) => (data += c));
+      req.on('end', () => {
+        try {
+          relay = JSON.parse(data || '{}');
+          relay.updatedAt = relay.updatedAt || Date.now();
+        } catch {}
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true }));
+      });
       return;
     }
     if (req.url === '/api/push/subscribe' && req.method === 'POST') {
