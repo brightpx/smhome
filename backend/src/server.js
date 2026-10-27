@@ -42,7 +42,7 @@ export function startServer(port = 0) {
     }
     if (req.url === '/api/devices' && req.method === 'GET') {
       const live = getReal() || getFile();
-      const base = relay && Date.now() - relay.updatedAt < 30000 ? { ...relay, source: 'browser-relay' } : live || { ...pollAll(), source: 'mock' };
+      const base = relay && Date.now() - relay.updatedAt < 30000 ? { onCount: (relay.devices || []).filter((d) => d.online).length, ...relay, source: 'browser-relay' } : live || { ...pollAll(), source: 'mock' };
       const body = JSON.stringify(base);
       res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
       res.end(body);
