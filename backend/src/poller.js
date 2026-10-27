@@ -53,9 +53,21 @@ export function mergeSnapshot(devices, gangsById, power) {
 
 let ctx = null;
 let qrShot = null;
+let qrPage = null;
 
 export function getQr() {
   return qrShot;
+}
+
+export async function refreshQr() {
+  try {
+    if (!qrPage) return null;
+    if (!qrPage.url().includes('/login')) { qrShot = null; return null; }
+    qrShot = await qrPage.screenshot();
+    return qrShot;
+  } catch {
+    return null;
+  }
 }
 
 async function ensurePage() {
@@ -75,10 +87,12 @@ export async function pollOnce(profileDir) {
   const page = ctx.page;
   await page.goto('https://us.device.tuya.ai/apps/2031674305368031282/', { waitUntil: 'domcontentloaded', timeout: 60000 });
   if (page.url().includes('/login')) {
+    qrPage = page;
     qrShot = await page.screenshot();
     return { login: true };
   }
   qrShot = null;
+  qrPage = null;
   const data = await page.evaluate(async () => {
     const H = { 'Content-Type': 'application/json;charset=UTF-8', 'micro-app-code': '@tuya-fe/smart2c-app-device', 'micro-app-id': '2031674305368031282', 'project-id': '69459073', 'isolation-type': 'homeId', uid: 'az1650764274804vous3' };
     const q = await fetch('/open-api/v1.0/m/sdf/device/pag/source-query', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ project_id: '69459073', page_no: 1, page_size: 20 }) });

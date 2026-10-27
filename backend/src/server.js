@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pollAll, getReal, getFile } from './tuyaWeb.js';
 import { readHistory } from './history.js';
-import { getQr } from './poller.js';
+import { getQr, refreshQr } from './poller.js';
 
 const FRONT = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../frontend');
 const DATA_HIST = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../data/history');
@@ -42,10 +42,11 @@ export function startServer(port = 0) {
       return;
     }
     if (req.url === '/api/qr' && req.method === 'GET') {
-      const png = getQr();
-      if (!png) { res.writeHead(404); res.end('no qr'); return; }
-      res.writeHead(200, { 'Content-Type': 'image/png', 'Access-Control-Allow-Origin': '*' });
-      res.end(png);
+      refreshQr().then((png) => {
+        if (!png) { res.writeHead(404); res.end('no qr'); return; }
+        res.writeHead(200, { 'Content-Type': 'image/png', 'Access-Control-Allow-Origin': '*' });
+        res.end(png);
+      }).catch(() => { res.writeHead(404); res.end('no qr'); });
       return;
     }
     if (req.url === '/api/status' && req.method === 'GET') {
