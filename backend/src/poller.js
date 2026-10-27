@@ -71,10 +71,12 @@ export async function refreshQr() {
 }
 
 async function pageShot(page) {
-  try {
-    const el = page.locator('canvas').first();
-    if ((await el.count()) > 0) return await el.screenshot();
-  } catch {}
+  for (const sel of ['div.qrcode', 'canvas']) {
+    try {
+      const el = page.locator(sel).first();
+      if ((await el.count()) > 0) return await el.screenshot();
+    } catch {}
+  }
   try {
     const imgs = page.locator('img');
     const n = await imgs.count();
