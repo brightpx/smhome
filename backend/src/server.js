@@ -14,7 +14,8 @@ export function startServer(port = 0) {
     if (req.url === '/' || req.url === '/index.html') req.url = '/index.html';
     if (req.method === 'GET' && ['/index.html', '/app.js', '/theme.css', '/manifest.json'].includes(req.url)) {
       try {
-        const file = path.join(FRONT, req.url.slice(1));
+        const rel = req.url === '/theme.css' ? 'src/theme.css' : req.url.slice(1);
+        const file = path.join(FRONT, rel);
         const data = fs.readFileSync(file);
         res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream' });
         res.end(data);
