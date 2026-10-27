@@ -7,4 +7,6 @@ test('reads live snapshot file when fresh', async () => {
   assert.ok(snap);
   assert.equal(snap.devices.length, 15);
   assert.equal(snap.source, 'tuya-web');
+  assert.equal(snap.power.meter.powerW, 372.1);
+  assert.equal(snap.power.solar.pvW, 113.4);
 });
