@@ -2,7 +2,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { pollAll, getReal, getFile } from './tuyaWeb.js';
+import { pollAll, getReal, getFile, enrichDevices, registry } from './tuyaWeb.js';
 import { readHistory } from './history.js';
 import { getQr, refreshQr } from './poller.js';
 
@@ -58,7 +58,9 @@ export function startServer(port = 0) {
     }
     if (pathname === '/api/devices' && req.method === 'GET') {
       const live = getReal() || getFile();
-      const base = relay && Date.now() - relay.updatedAt < 120000 ? { onCount: (relay.devices || []).filter((d) => d.online).length, ...relay, source: relay.source || 'browser-relay' } : live || { ...pollAll(), source: 'mock' };
+      const rel = relay && Date.now() - relay.updatedAt < 120000 ? { ...relay, devices: enrichDevices(relay.devices, registry()), source: relay.source || 'browser-relay' } : null;
+      const base = rel || live || { ...pollAll(), source: 'mock' };
+      if (rel) base.onCount = (base.devices || []).filter((d) => d.online).length;
       const body = JSON.stringify(base);
       res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
       res.end(body);
@@ -71,6 +73,7 @@ export function startServer(port = 0) {
         try {
           relay = JSON.parse(data || '{}');
           relay.updatedAt = relay.updatedAt || Date.now();
+          if (relay.devices) relay.devices = enrichDevices(relay.devices, registry());
         } catch {}
         res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
         res.end(JSON.stringify({ ok: true }));

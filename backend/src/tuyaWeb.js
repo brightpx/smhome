@@ -30,6 +30,27 @@ export function getFile(maxAgeMs = 3600000) {
   }
 }
 
+const _reg = { devices: null };
+export function registry() {
+  if (!_reg.devices) {
+    try {
+      const p = new URL('../../data/live.json', import.meta.url);
+      _reg.devices = JSON.parse(fs.readFileSync(p, 'utf8')).devices || [];
+    } catch {
+      _reg.devices = [];
+    }
+  }
+  return _reg.devices;
+}
+
+export function enrichDevices(live, reg) {
+  const byId = Object.fromEntries((reg || []).map((d) => [d.id, d]));
+  return (live || []).map((d) => {
+    const r = byId[d.id] || {};
+    return { ...d, type: d.type || r.type || 'other', gangs: d.gangs || r.gangs };
+  });
+}
+
 export function guessType(d) {
   const t = `${d.device_type || ''} ${d.pid || ''}`.toLowerCase();
   if (t.includes('meter')) return 'meter';
