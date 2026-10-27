@@ -10,6 +10,7 @@ test('serves frontend page with flow and devices', async () => {
     assert.ok(html.includes('flow'));
     const js = await (await fetch(`${url}/app.js`)).text();
     assert.ok(js.includes('/api/devices'));
+    assert.ok(js.includes('<svg'));
     const jsVer = await (await fetch(`${url}/app.js?v=7`)).text();
     assert.ok(jsVer.includes('/api/devices'));
     const css = await (await fetch(`${url}/theme.css`)).text();

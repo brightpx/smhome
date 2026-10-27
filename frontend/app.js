@@ -6,12 +6,10 @@ async function tick() {
     const p = d.power || {};
     const solarW = p.solar ? p.solar.acW : null;
     const homeW = p.meter ? p.meter.powerW : null;
-    const solar = solarW == null ? '—' : Math.round(solarW) + '<small>W</small>';
-    const home = homeW == null ? '—' : (homeW / 1000).toFixed(2) + '<small>kW</small>';
     let gridTxt = '—', gridLbl = 'รอข้อมูล', gridCol = '#b6c2d3';
     if (solarW != null && homeW != null) {
       const grid = Math.round((homeW - solarW) * 10) / 10;
-      gridTxt = (Math.abs(grid) / 1000).toFixed(2) + '<small>kW</small>';
+      gridTxt = (Math.abs(grid) / 1000).toFixed(2) + ' kW';
       gridLbl = grid <= 0 ? 'ขายกริด' : 'ดึงกริด';
       gridCol = grid <= 0 ? '#30d158' : '#0a84ff';
     }
@@ -19,7 +17,20 @@ async function tick() {
     const ageMin = Math.floor((Date.now() - d.updatedAt) / 60000);
     const staleBanner = ageMin >= 15 ? '<div class="panel" style="border-color:rgba(255,159,10,.5);margin-bottom:10px">ข้อมูลเก่า ' + ageMin + ' นาทีแล้ว — backend ยังไม่ได้รอบใหม่ กดรีเฟรชหน้านี้ไม่ช่วย ต้องป้อนข้อมูลใหม่</div>' : '';
     document.getElementById('warn').innerHTML = staleBanner;
-    document.getElementById('flow').innerHTML = '<div class="flowNums"><div><div class="v" style="color:#facc15">' + solar + '</div><div class="staleTag">โซล่า BFAD</div></div><div class="arr">→</div><div><div class="v">' + home + '</div><div class="staleTag">ใช้ในบ้าน</div></div><div class="arr">→</div><div><div class="v" style="color:' + gridCol + '">' + gridTxt + '</div><div class="staleTag">' + gridLbl + '</div></div></div>' + (p.meter ? '<div class="staleTag">ไฟ ' + p.meter.voltage + 'V • ใช้สะสม ' + p.meter.forwardKwh + ' kWh • โซล่าสะสม ' + p.solar.totalKwh + ' kWh</div>' : '<div class="staleTag">ค่า mock — รอข้อมูลมิเตอร์</div>') + '<div id="chart" class="staleTag">โหลดกราฟ…</div>';
+    const solarTxt = solarW == null ? '—' : Math.round(solarW) + ' W';
+    const homeTxt = homeW == null ? '—' : (homeW / 1000).toFixed(2) + ' kW';
+    const gridDirExport = solarW != null && homeW != null && (homeW - solarW) <= 0;
+    document.getElementById('flow').innerHTML = '<svg viewBox="0 0 360 150" style="width:100%;height:auto;display:block" role="img" aria-label="energy flow">'
+      + '<defs><marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="none" stroke="#888" stroke-width="1.2"/></marker></defs>'
+      + '<circle cx="45" cy="60" r="24" fill="rgba(250,204,21,.15)" stroke="#facc15" stroke-width="2"/><text x="45" y="66" text-anchor="middle" font-size="18">☀</text>'
+      + '<rect x="155" y="36" width="50" height="48" rx="10" fill="rgba(10,132,255,.12)" stroke="#0a84ff" stroke-width="2"/><text x="180" y="64" text-anchor="middle" font-size="20">⌂</text>'
+      + '<circle cx="315" cy="60" r="24" fill="rgba(48,209,88,.10)" stroke="#30d158" stroke-width="2"/><text x="315" y="66" text-anchor="middle" font-size="18">⚡</text>'
+      + '<line x1="72" y1="60" x2="150" y2="60" class="flowline" marker-end="url(#ah)"/>'
+      + '<line x1="' + (gridDirExport ? 205 : 288) + '" y1="60" x2="' + (gridDirExport ? 288 : 205) + '" y2="60" class="flowline" marker-end="url(#ah)"/>'
+      + '<text x="45" y="108" text-anchor="middle" fill="#facc15" font-weight="800" font-size="15">' + solarTxt + '</text><text x="45" y="124" text-anchor="middle" fill="#b6c2d3" font-size="10">โซล่า BFAD</text>'
+      + '<text x="180" y="108" text-anchor="middle" fill="#fff" font-weight="800" font-size="15">' + homeTxt + '</text><text x="180" y="124" text-anchor="middle" fill="#b6c2d3" font-size="10">ใช้ในบ้าน</text>'
+      + '<text x="315" y="108" text-anchor="middle" fill="' + gridCol + '" font-weight="800" font-size="15">' + gridTxt + '</text><text x="315" y="124" text-anchor="middle" fill="#b6c2d3" font-size="10">' + gridLbl + '</text></svg>'
+      + (p.meter ? '<div class="staleTag">ไฟ ' + p.meter.voltage + 'V • ใช้สะสม ' + p.meter.forwardKwh + ' kWh • โซล่าสะสม ' + p.solar.totalKwh + ' kWh</div>' : '<div class="staleTag">ค่า mock — รอข้อมูลมิเตอร์</div>') + '<div id="chart" class="staleTag">โหลดกราฟ…</div>';
     const onGangs = d.devices.flatMap(x => x.gangs || []).filter(g => g.on).length;
     const offCount = d.devices.length - d.onCount;
     document.getElementById('devTitle').textContent = 'ออนไลน์ ' + d.onCount + ' • เปิดจริง ' + onGangs + ' ช่อง • ดับ ' + offCount;
