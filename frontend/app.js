@@ -1,5 +1,6 @@
 async function tick() {
   try {
+    document.getElementById('ver').textContent = 'js: ok ' + new Date().toLocaleTimeString('th-TH');
     const r = await fetch('/api/devices');
     const d = await r.json();
     const p = d.power || {};
