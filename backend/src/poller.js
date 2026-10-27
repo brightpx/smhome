@@ -63,11 +63,29 @@ export async function refreshQr() {
   try {
     if (!qrPage) return null;
     if (!qrPage.url().includes('/login')) { qrShot = null; return null; }
-    qrShot = await qrPage.screenshot();
+    qrShot = await pageShot(qrPage);
     return qrShot;
   } catch {
     return null;
   }
+}
+
+async function pageShot(page) {
+  try {
+    const el = page.locator('canvas').first();
+    if ((await el.count()) > 0) return await el.screenshot();
+  } catch {}
+  try {
+    const imgs = page.locator('img');
+    const n = await imgs.count();
+    for (let i = 0; i < Math.min(n, 10); i++) {
+      const box = await imgs.nth(i).boundingBox();
+      if (box && box.width > 100 && box.width < 400 && Math.abs(box.width - box.height) < 30) {
+        return await imgs.nth(i).screenshot();
+      }
+    }
+  } catch {}
+  return await page.screenshot();
 }
 
 async function ensurePage() {
@@ -88,7 +106,7 @@ export async function pollOnce(profileDir) {
   await page.goto('https://us.device.tuya.ai/apps/2031674305368031282/', { waitUntil: 'domcontentloaded', timeout: 60000 });
   if (page.url().includes('/login')) {
     qrPage = page;
-    qrShot = await page.screenshot();
+    qrShot = await pageShot(page);
     return { login: true };
   }
   qrShot = null;
