@@ -24,8 +24,17 @@ body{font-family:system-ui;margin:0;padding:12px 12px 96px;max-width:820px;margi
 .room{font-size:13px;font-weight:700;margin:12px 0 2px}
 .bars{display:inline-flex;align-items:flex-end;gap:2px;height:30px;vertical-align:bottom;margin:0 4px}
 .bars i{width:5px;background:#0a84ff;border-radius:2px;opacity:.85}
-.arr{opacity:.5;font-size:18px;align-self:center}
+.arr{opacity:.5;font-size:18px;align-self:center;animation:drift 1.6s ease-in-out infinite}
+@keyframes drift{50%{transform:translateX(4px);opacity:1}}
 .v small{font-size:11px;font-weight:600;opacity:.7}
+#devices{display:grid;gap:10px}
+.devcard{animation:none}
+body:not(.seen) .devcard{animation:rise .45s ease both}
+.devcard.dim{opacity:.55}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}}
+.bars i{animation:grow .5s ease both}
+@keyframes grow{from{transform:scaleY(0)}}
+.bars i{transform-origin:bottom}
 @media(min-width:700px){.cols{display:grid;grid-template-columns:1.2fr 1fr;gap:10px}}
 </style>
 </head>
