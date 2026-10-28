@@ -131,7 +131,7 @@ export function startServer(port = 0, host = '127.0.0.1') {
     }
     if (pathname === '/api/status' && req.method === 'GET') {
       res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
-      res.end(JSON.stringify({ loginNeeded: !!getQr(), autoError: getLastError() }));
+      res.end(JSON.stringify({ loginNeeded: !!getQr(), autoError: getLastError(), hasSessionCookie: !!getSessionCookies() }));
       return;
     }
     if (pathname === '/api/devices' && req.method === 'GET') {
