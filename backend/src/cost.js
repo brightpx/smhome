@@ -8,8 +8,9 @@ export function isPeak(date = new Date()) {
 }
 
 export function costOfKwh(kwh, at = new Date(), rates = {}) {
-  const peak = Number(process.env.TOU_PEAK || rates.peak || 5.1135);
-  const off = Number(process.env.TOU_OFFPEAK || rates.offpeak || 2.6037);
+  const flat = process.env.TOU_FLAT || null;
+  const peak = Number(flat ?? process.env.TOU_PEAK ?? rates.peak ?? 5.1135);
+  const off = Number(flat ?? process.env.TOU_OFFPEAK ?? rates.offpeak ?? 2.6037);
   return kwh * (isPeak(at) ? peak : off);
 }
 

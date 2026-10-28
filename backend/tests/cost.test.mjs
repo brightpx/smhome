@@ -21,6 +21,14 @@ test('/api/cost returns kwh and thb', async () => {
     await close();
   }
 });
+test('flat rate overrides tou', async () => {
+  const { costOfKwh } = await import('../src/cost.js');
+  process.env.TOU_FLAT = '5';
+  assert.equal(costOfKwh(2, new Date(2026, 9, 26, 10, 0), {}), 10);
+  assert.equal(costOfKwh(2, new Date(2026, 9, 26, 23, 0), {}), 10);
+  delete process.env.TOU_FLAT;
+});
+
 test('daily cost sums history deltas', async () => {
   const { dailyCost } = await import('../src/cost.js');
   const rows = [
