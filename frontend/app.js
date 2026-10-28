@@ -19,6 +19,7 @@ async function showLog(id, name) {
 }
 async function tick() {
   try {
+    const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
     document.getElementById('ver').textContent = 'js: ok ' + new Date().toLocaleTimeString('th-TH');
     const r = await fetch('/api/devices');
     const d = await r.json();
@@ -75,7 +76,13 @@ async function tick() {
     }).join('');
     try {
       const st = await (await fetch('/api/status')).json();
-      document.getElementById('qrbox').innerHTML = st.loginNeeded ? '<div class="panel" style="border-color:rgba(255,159,10,.5);margin-bottom:10px;text-align:center">เชื่อมต่อ Tuya หลุด — เปิดแอป Smart Life สแกน QR นี้<img src="/api/qr?t=' + Date.now() + '" style="max-width:220px;display:block;margin:8px auto;border-radius:12px"></div>' : '';
+      if (st.loginNeeded) {
+        document.getElementById('qrbox').innerHTML = '<div class="panel" style="border-color:rgba(255,159,10,.5);margin-bottom:10px;text-align:center">เชื่อมต่อ Tuya หลุด — เปิดแอป Smart Life สแกน QR นี้<br><span class="staleTag">QR เปลี่ยนทุกครั้งที่โหลด ถ้าสแกนไม่ทันให้รีเฟรช</span><img src="/api/qr?t=' + Date.now() + '" style="max-width:220px;display:block;margin:8px auto;border-radius:12px"></div>';
+      } else if (st.autoError && ageMin >= 5) {
+        document.getElementById('qrbox').innerHTML = '<div class="panel" style="margin-bottom:10px;text-align:center">ดึงข้อมูลอัตโนมัติขัดข้อง (' + esc(st.autoError.message) + ') — กำลังลองใหม่เอง</div>';
+      } else {
+        document.getElementById('qrbox').innerHTML = '';
+      }
     } catch {}
   } catch (e) {
     const msg = 'โหลดไม่เข้า: ' + (e && e.message ? e.message : e);

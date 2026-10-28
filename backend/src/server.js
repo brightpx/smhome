@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pollAll, getReal, getFile, enrichDevices, registry } from './tuyaWeb.js';
 import { readHistory } from './history.js';
-import { getQr, refreshQr, tuyaHeaders, getSessionCookies, tuyaLog, getProps } from './poller.js';
+import { getQr, refreshQr, tuyaHeaders, getSessionCookies, tuyaLog, getProps, getLastError } from './poller.js';
 import { diffSnapshots } from './changes.js';
 
 const FRONT = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../frontend');
@@ -103,7 +103,7 @@ export function startServer(port = 0, host = '127.0.0.1') {
     }
     if (pathname === '/api/status' && req.method === 'GET') {
       res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
-      res.end(JSON.stringify({ loginNeeded: !!getQr() }));
+      res.end(JSON.stringify({ loginNeeded: !!getQr(), autoError: getLastError() }));
       return;
     }
     if (pathname === '/api/devices' && req.method === 'GET') {

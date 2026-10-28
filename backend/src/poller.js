@@ -141,6 +141,11 @@ async function refreshSessionCookies() {
   return sessionCookies;
 }
 
+let lastError = null;
+let lastErrorAt = 0;
+export function getLastError() {
+  return lastError ? { message: String(lastError).slice(0, 200), at: lastErrorAt } : null;
+}
 export async function refreshQr() {
   try {
     if (!qrPage) return null;
@@ -214,10 +219,14 @@ export async function pollOnce(profileDir) {
     return { devices, props };
   });
   } catch (e) {
+    lastError = e;
+    lastErrorAt = Date.now();
     try {
+      await new Promise((r) => setTimeout(r, 2000));
       if (page.url().includes('/login')) {
         qrPage = page;
         qrShot = await pageShot(page);
+        lastError = null;
         return { login: true };
       }
     } catch {}
@@ -230,6 +239,7 @@ export async function pollOnce(profileDir) {
     if (r.gangs) gangsById[d.id] = r.gangs;
     if (r.power) powers.push(r);
   }
+  lastError = null;
   return mergeSnapshot(data.devices, gangsById, powers);
 }
 
