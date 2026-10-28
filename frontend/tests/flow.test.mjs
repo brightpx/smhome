@@ -2,8 +2,9 @@ import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
 
 test('flow math and grouping', async () => {
-  const { calcGrid, fmtSolarW } = await import('../src/components/FlowCard.js');
+  const { calcGrid, fmtSolarW, homeUseW } = await import('../src/components/FlowCard.js');
   assert.equal(calcGrid(2.4, 1.8), 0.6);
+  assert.equal(homeUseW(583, -240), 343);
   assert.equal(fmtSolarW(25.9), '26 W');
   assert.equal(fmtSolarW(null), '—');
   const { groupOn } = await import('../src/components/DeviceList.js');

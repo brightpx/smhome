@@ -7,6 +7,11 @@ export function fmtSolarW(w) {
   return Math.round(w) + ' W';
 }
 
+export function homeUseW(solarW, meterW) {
+  if (solarW == null || meterW == null) return null;
+  return Math.round((solarW + meterW) * 10) / 10;
+}
+
 export function renderFlow({ solarKw, homeKw, stale, online = true }) {
   if (stale || online === false) return `<div class="stale">— ข้อมูลเก่า รออัปเดต</div>`;
   const grid = calcGrid(solarKw, homeKw);

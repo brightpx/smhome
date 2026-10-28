@@ -36,17 +36,18 @@ async function tick(manual) {
     const solarW = p.solar ? p.solar.acW : null;
     const homeW = p.meter ? p.meter.powerW : null;
     let gridTxt = '—', gridLbl = 'รอข้อมูล', gridCol = '#b6c2d3';
+    let homeTxt = '—';
     if (solarW != null && homeW != null) {
-      const grid = Math.round((homeW - solarW) * 10) / 10;
+      const grid = Math.round(homeW * 10) / 10, home = Math.round((solarW + homeW) * 10) / 10;
       gridTxt = Math.round(Math.abs(grid)) + ' W';
       gridLbl = grid <= 0 ? 'ขายกริด' : 'ดึงกริด';
       gridCol = grid <= 0 ? '#30d158' : '#0a84ff';
+      homeTxt = Math.round(home) + ' W';
     }
     setHtml('live', '<span class="live"><span class="dot"></span>LIVE</span> <span class="staleTag">' + new Date(d.updatedAt).toLocaleTimeString('th-TH') + ' • ' + d.source + '</span> <span class="staleTag" id="cd">รีเฟรชใน 5วิ</span> <button onclick="manualRefresh()" style="background:rgba(10,132,255,.25);border:1px solid rgba(10,132,255,.5);color:#fff;border-radius:10px;min-height:32px;padding:0 10px;font-size:12px">รีเฟรช</button>');
     const ageMin = Math.floor((Date.now() - d.updatedAt) / 60000);
     setHtml('warn', ageMin >= 15 ? '<div class="panel" style="border-color:rgba(255,159,10,.5);margin-bottom:10px">ข้อมูลเก่า ' + ageMin + ' นาทีแล้ว — backend ยังไม่ได้รอบใหม่ กดรีเฟรชหน้านี้ไม่ช่วย ต้องป้อนข้อมูลใหม่</div>' : '');
     const solarTxt = solarW == null ? '—' : Math.round(solarW) + ' W';
-    const homeTxt = homeW == null ? '—' : Math.round(homeW) + ' W';
     const gridDirExport = solarW != null && homeW != null && (homeW - solarW) <= 0;
     setHtml('flow', '<svg viewBox="0 0 360 132" style="width:100%;max-width:330px;height:auto;display:block;margin:0 auto" role="img" aria-label="energy flow">'
       + '<defs><marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="none" stroke="#888" stroke-width="1.2"/></marker></defs>'
