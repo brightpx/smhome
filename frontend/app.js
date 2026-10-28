@@ -10,7 +10,7 @@ function showTab(which) {
     if (t) { t.style.display = 'block'; loadTimeline(); }
     if (bd) bd.style.background = 'rgba(255,255,255,.06)';
     if (bt) bt.style.background = 'rgba(10,132,255,.25)';
-  } else {
+    } else {
     if (d) d.style.display = '';
     if (t) t.style.display = 'none';
     if (bd) bd.style.background = 'rgba(10,132,255,.25)';
@@ -38,13 +38,35 @@ async function showLog(id, name) {
     const live = await (await fetch('/api/tuyalog?dev_id=' + id + '&hours=24')).json();
     if (Array.isArray(live) && live.length) {
       setHtml('mBody', live.map(e => row(e.event_name || e.dp_name || e.name || '?', e.event_detail ?? e.value ?? '', new Date(e.event_time || e.time || Date.now()).toLocaleString('th-TH'))).join(''));
-      return;
+    } else {
+      try {
+        const log = await (await fetch('/api/devicelog?dev_id=' + id)).json();
+        setHtml('mBody', log.length ? log.map(e => row(e.detail, '', new Date(e.t).toLocaleString('th-TH'))).join('') : 'X');
+      } catch (e) { setText('mBody', 'Y'); }
     }
   } catch (e) {}
   try {
     const log = await (await fetch('/api/devicelog?dev_id=' + id)).json();
     setHtml('mBody', log.length ? log.map(e => row(e.detail, '', new Date(e.t).toLocaleString('th-TH'))).join('') : 'ยังไม่มีเหตุการณ์ตั้งแต่เริ่มจด (จดทุกครั้งที่สถานะเปลี่ยน)');
   } catch (e) { setText('mBody', 'โหลดไม่ได้'); }
+  setHtml('mBody', document.getElementById('mBody').innerHTML + '<div style="margin-top:12px;border-top:1px solid rgba(255,255,255,.1);padding-top:8px"><div class="staleTag">แก้ชื่อสวิตช์ (ต้องตรงช่องจริง กดบันทึกแล้วจะใช้ชื่อใหม่ทันที)</div><div id="nameEdit"></div><button onclick="saveNames(\'' + id + '\')" style="background:rgba(10,132,255,.25);border:1px solid rgba(10,132,255,.5);color:#fff;border-radius:10px;min-height:40px;padding:0 14px;margin-top:8px">บันทึกชื่อ</button></div>');
+  try {
+    const g = await (await fetch('/api/gangnames?dev_id=' + id)).json();
+    const names = g.names || [];
+    const n = Math.max(names.length, 8);
+    let html = '';
+    for (let i = 0; i < Math.min(names.length || 4, 8); i++) html += '<input data-gang="' + i + '" value="' + esc(names[i] || '') + '" placeholder="ช่อง ' + (i + 1) + '" style="width:100%;margin:4px 0;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:#e2e8f0;padding:8px;min-height:40px">';
+    document.getElementById('nameEdit').innerHTML = html || '<div class="staleTag">อุปกรณ์นี้ไม่มีสวิตช์ย่อย</div>';
+  } catch {}
+}
+
+async function saveNames(id) {
+  const inputs = Array.from(document.querySelectorAll('#nameEdit input'));
+  const names = inputs.map(i => i.value.trim()).filter((v, i, a) => v !== '' || i < a.length);
+  while (names.length && names[names.length - 1] === '') names.pop();
+  const r = await (await fetch('/api/gangnames', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, names }) })).json();
+  alert(r.names ? 'บันทึกแล้ว: ' + r.names.join(', ') : 'บันทึกไม่สำเร็จ');
+  tick(true);
 }
 let tickTimer = null, cd = 5, busy = false;
 setInterval(() => { cd = Math.max(0, cd - 1); const e = el('cd'); if (e) e.textContent = 'รีเฟรชใน ' + cd + 'วิ'; }, 1000);
@@ -102,6 +124,7 @@ async function tick(manual) {
     setHtml('warn', ageMin >= 15 ? '<div class="panel" style="border-color:rgba(255,159,10,.5);margin-bottom:10px">ข้อมูลเก่า ' + ageMin + ' นาทีแล้ว — backend ยังไม่ได้รอบใหม่ กดรีเฟรชหน้านี้ไม่ช่วย ต้องป้อนข้อมูลใหม่</div>' : '');
     const solarTxt = solarW == null ? '—' : Math.round(solarW) + ' W';
     const gridDirExport = solarW != null && homeW != null && (homeW - solarW) <= 0;
+    const tempPill = (t) => t == null ? '' : ' • <span class="pill ' + (t >= 60 ? 'hot' : t >= 50 ? 'warm' : 'cool') + '">โซล่า ' + t + '°C</span>';
     setHtml('flow', '<svg viewBox="0 0 360 132" style="width:100%;max-width:330px;height:auto;display:block;margin:0 auto" role="img" aria-label="energy flow">'
       + '<defs><marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="none" stroke="#888" stroke-width="1.2"/></marker></defs>'
       + '<g stroke="#facc15" stroke-width="2" fill="none"><circle cx="45" cy="60" r="10"/><path d="M45,42v-6M45,78v6M27,60h-6M63,60h6M32,47l-4,-4M58,47l4,-4M32,73l-4,4M58,73l4,4"/></g>'
@@ -112,7 +135,7 @@ async function tick(manual) {
       + '<text x="45" y="108" text-anchor="middle" fill="#facc15" font-weight="800" font-size="15">' + solarTxt + '</text><text x="45" y="124" text-anchor="middle" fill="#b6c2d3" font-size="10">โซล่า BFAD</text>'
       + '<text x="180" y="108" text-anchor="middle" fill="#fff" font-weight="800" font-size="15">' + homeTxt + '</text><text x="180" y="124" text-anchor="middle" fill="#b6c2d3" font-size="10">ใช้ในบ้าน</text>'
       + '<text x="315" y="108" text-anchor="middle" fill="' + gridCol + '" font-weight="800" font-size="15">' + gridTxt + '</text><text x="315" y="124" text-anchor="middle" fill="#b6c2d3" font-size="10">' + gridLbl + '</text></svg>'
-      + (p.meter ? '<div class="staleTag">ไฟ ' + p.meter.voltage + 'V • กระแส ' + (p.meter.currentA != null ? p.meter.currentA + 'mA • PF ' + p.meter.pf : '—') + '<br>ใช้สะสม ' + p.meter.forwardKwh + ' kWh • ขายสะสม ' + p.meter.reverseKwh + ' kWh' + (p.solar ? ' • โซล่า ' + p.solar.temp + '°C' : '') + '</div><div id="costline" class="staleTag"></div><div id="wxline" class="staleTag"></div>' : '<div class="staleTag">ค่า mock — รอข้อมูลมิเตอร์</div>'));
+      + (p.meter ? '<div class="staleTag">ไฟ ' + p.meter.voltage + 'V • กระแส ' + (p.meter.currentA != null ? p.meter.currentA + 'mA • PF ' + p.meter.pf : '—') + '<br>ใช้สะสม ' + p.meter.forwardKwh + ' kWh • ขายสะสม ' + p.meter.reverseKwh + ' kWh' + (p.solar ? ' • โซล่า ' + p.solar.temp + '°C' : '') + '</div>' : '<div class="staleTag">ค่า mock — รอข้อมูลมิเตอร์</div>') + '<div id="costline" class="staleTag"></div><div id="wxline" class="staleTag"></div>');
     const onGangs = d.devices.flatMap(x => x.gangs || []).filter(g => g.on).length;
     const offCount = d.devices.length - d.onCount;
     setText('devTitle', 'ออนไลน์ ' + d.onCount + ' • เปิดจริง ' + onGangs + ' ช่อง • ดับ ' + offCount);
