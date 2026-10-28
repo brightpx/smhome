@@ -16,12 +16,17 @@ export function costOfKwh(kwh, at = new Date(), rates = {}) {
 
 export function dailyCost(rows, rates) {
   const sorted = [...rows].filter((r) => r.fwd != null).sort((a, b) => a.t - b.t);
-  let kwh = 0, thb = 0;
+  let kwh = 0, thb = 0, solarKwh = 0;
   for (let i = 1; i < sorted.length; i++) {
+    const dtH = (sorted[i].t - sorted[i - 1].t) / 3600000;
     const d = sorted[i].fwd - sorted[i - 1].fwd;
-    if (d <= 0 || d > 50) continue;
-    kwh += d;
-    thb += costOfKwh(d, new Date(sorted[i].t), rates);
+    if (d > 0 && d < 50) {
+      kwh += d;
+      thb += costOfKwh(d, new Date(sorted[i].t), rates);
+    }
+    const sw = sorted[i].solarW;
+    if (dtH > 0 && dtH <= 0.5 && typeof sw === 'number' && sw >= 0) solarKwh += (sw * dtH) / 1000;
   }
-  return { kwh: Math.round(kwh * 100) / 100, thb: Math.round(thb * 100) / 100 };
+  const r2 = (x) => Math.round(x * 100) / 100;
+  return { kwh: r2(kwh), thb: r2(thb), solarKwh: r2(solarKwh), savedThb: r2(costOfKwh(solarKwh, new Date(), rates)) };
 }

@@ -40,3 +40,16 @@ test('daily cost sums history deltas', async () => {
   assert.ok(r.kwh >= 1.99 && r.kwh <= 2.01);
   assert.ok(r.thb > 0);
 });
+
+test('solar production value', async () => {
+  const { dailyCost } = await import('../src/cost.js');
+  const t0 = new Date(2026, 9, 27, 10, 0).getTime();
+  const rows = [
+    { t: t0, fwd: 20, solarW: 1000 },
+    { t: t0 + 300000, fwd: 20, solarW: 1000 },
+    { t: t0 + 600000, fwd: 20, solarW: 1000 }
+  ];
+  const r = dailyCost(rows, { peak: 5, offpeak: 5 });
+  assert.ok(r.solarKwh >= 0.16 && r.solarKwh <= 0.18);
+  assert.ok(r.savedThb >= 0.8 && r.savedThb <= 0.9);
+});

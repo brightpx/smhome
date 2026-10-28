@@ -142,7 +142,7 @@ async function tick(manual) {
     try {
       const c = await (await fetch('/api/cost')).json();
       const el = document.getElementById('costline');
-      if (el) el.innerHTML = 'วันนี้ใช้ ' + (c.kwh || 0) + ' kWh ≈ ฿' + (c.thb || 0) + ' <span class="staleTag">(เรท 5 บาท/หน่วย ไม่รวม Ft/VAT)</span>';
+      if (el) el.innerHTML = 'วันนี้ใช้ ' + (c.kwh || 0) + ' kWh ≈ ฿' + (c.thb || 0) + ' • โซล่าผลิต ' + (c.solarKwh || 0) + ' kWh ≈ ฿' + (c.savedThb || 0) + ' <span class="staleTag">(เรท 5 บาท/หน่วย ไม่รวม Ft/VAT)</span>';
     } catch {}
     try {
       const st = await (await fetch('/api/status')).json();
