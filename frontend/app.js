@@ -50,9 +50,9 @@ async function tick(manual) {
     const gridDirExport = solarW != null && homeW != null && (homeW - solarW) <= 0;
     setHtml('flow', '<svg viewBox="0 0 360 132" style="width:100%;max-width:330px;height:auto;display:block;margin:0 auto" role="img" aria-label="energy flow">'
       + '<defs><marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="none" stroke="#888" stroke-width="1.2"/></marker></defs>'
-      + '<circle cx="45" cy="60" r="24" fill="rgba(250,204,21,.15)" stroke="#facc15" stroke-width="2"/><text x="45" y="66" text-anchor="middle" font-size="18">☀</text>'
-      + '<rect x="155" y="36" width="50" height="48" rx="10" fill="rgba(10,132,255,.12)" stroke="#0a84ff" stroke-width="2"/><text x="180" y="64" text-anchor="middle" font-size="20">⌂</text>'
-      + '<circle cx="315" cy="60" r="24" fill="rgba(48,209,88,.10)" stroke="#30d158" stroke-width="2"/><text x="315" y="66" text-anchor="middle" font-size="18">⚡</text>'
+      + '<g stroke="#facc15" stroke-width="2" fill="none"><circle cx="45" cy="60" r="10"/><path d="M45,42v-6M45,78v6M27,60h-6M63,60h6M32,47l-4,-4M58,47l4,-4M32,73l-4,4M58,73l4,4"/></g>'
+      + '<rect x="155" y="36" width="50" height="48" rx="10" fill="rgba(10,132,255,.12)" stroke="#0a84ff" stroke-width="2"/><path d="M168,62 L180,50 L192,62 V74 H168 Z" fill="none" stroke="#5eb0ff" stroke-width="2.5" stroke-linejoin="round"/>'
+      + '<circle cx="315" cy="60" r="24" fill="rgba(48,209,88,.10)" stroke="#30d158" stroke-width="2"/><polygon points="318,46 307,63 314,63 311,74 323,55 316,55" fill="#30d158"/>'
       + '<line x1="72" y1="60" x2="150" y2="60" class="flowline" marker-end="url(#ah)"/>'
       + '<line x1="' + (gridDirExport ? 205 : 288) + '" y1="60" x2="' + (gridDirExport ? 288 : 205) + '" y2="60" class="flowline" marker-end="url(#ah)"/>'
       + '<text x="45" y="108" text-anchor="middle" fill="#facc15" font-weight="800" font-size="15">' + solarTxt + '</text><text x="45" y="124" text-anchor="middle" fill="#b6c2d3" font-size="10">โซล่า BFAD</text>'
