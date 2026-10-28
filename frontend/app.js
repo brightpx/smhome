@@ -59,7 +59,7 @@ async function tick(manual) {
       + '<text x="45" y="108" text-anchor="middle" fill="#facc15" font-weight="800" font-size="15">' + solarTxt + '</text><text x="45" y="124" text-anchor="middle" fill="#b6c2d3" font-size="10">โซล่า BFAD</text>'
       + '<text x="180" y="108" text-anchor="middle" fill="#fff" font-weight="800" font-size="15">' + homeTxt + '</text><text x="180" y="124" text-anchor="middle" fill="#b6c2d3" font-size="10">ใช้ในบ้าน</text>'
       + '<text x="315" y="108" text-anchor="middle" fill="' + gridCol + '" font-weight="800" font-size="15">' + gridTxt + '</text><text x="315" y="124" text-anchor="middle" fill="#b6c2d3" font-size="10">' + gridLbl + '</text></svg>'
-      + (p.meter ? '<div class="staleTag">ไฟ ' + p.meter.voltage + 'V • กระแส ' + (p.meter.currentA != null ? p.meter.currentA + 'mA • PF ' + p.meter.pf : '—') + '<br>ใช้สะสม ' + p.meter.forwardKwh + ' kWh • ขายสะสม ' + p.meter.reverseKwh + ' kWh' + (p.solar ? ' • โซล่า ' + p.solar.temp + '°C' : '') + '</div>' : '<div class="staleTag">ค่า mock — รอข้อมูลมิเตอร์</div>'));
+      + (p.meter ? '<div class="staleTag">ไฟ ' + p.meter.voltage + 'V • กระแส ' + (p.meter.currentA != null ? p.meter.currentA + 'mA • PF ' + p.meter.pf : '—') + '<br>ใช้สะสม ' + p.meter.forwardKwh + ' kWh • ขายสะสม ' + p.meter.reverseKwh + ' kWh' + (p.solar ? ' • โซล่า ' + p.solar.temp + '°C' : '') + '</div><div id="costline" class="staleTag"></div>' : '<div class="staleTag">ค่า mock — รอข้อมูลมิเตอร์</div>'));
     const onGangs = d.devices.flatMap(x => x.gangs || []).filter(g => g.on).length;
     const offCount = d.devices.length - d.onCount;
     setText('devTitle', 'ออนไลน์ ' + d.onCount + ' • เปิดจริง ' + onGangs + ' ช่อง • ดับ ' + offCount);
@@ -81,6 +81,11 @@ async function tick(manual) {
       const gangs = (x.gangs || []).map(g => '<div class="row"><span class="gang">↳ ' + g.name + '</span><span class="tgl' + (g.on ? ' on' : '') + '"><i></i></span></div>').join('');
       return '<div class="panel devcard' + (!x.online ? ' dim' : '') + '" onclick="showLog(\'' + x.id + '\',\'' + x.name.replace(/'/g, '') + '\')" style="cursor:pointer"><div class="row dev devhead">' + iconFor(x) + '<span style="flex:1">' + x.name + '<br><span class="staleTag">' + x.room + '</span></span>' + badge + '</div>' + gangs + '</div>';
     }).join(''));
+    try {
+      const c = await (await fetch('/api/cost')).json();
+      const el = document.getElementById('costline');
+      if (el && (c.kwh > 0 || c.points > 0)) el.innerHTML = 'วันนี้ใช้ ' + c.kwh + ' kWh ≈ ฿' + c.thb + ' <span class="staleTag">(TOU โดยประมาณ ไม่รวม Ft/VAT)</span>';
+    } catch {}
     try {
       const st = await (await fetch('/api/status')).json();
       if (st.loginNeeded) {

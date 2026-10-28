@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pollAll, getReal, getFile, enrichDevices, registry } from './tuyaWeb.js';
 import { readHistory } from './history.js';
+import { dailyCost } from './cost.js';
 import { getQr, refreshQr, tuyaHeaders, getSessionCookies, tuyaLog, getProps, getLastError } from './poller.js';
 import { diffSnapshots } from './changes.js';
 
@@ -74,6 +75,21 @@ export function startServer(port = 0, host = '127.0.0.1') {
         res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
         res.end(JSON.stringify({ error: 'tuya-props-unavailable' }));
       });
+      return;
+    }
+    if (pathname === '/api/cost' && req.method === 'GET') {
+      try {
+        const rows = readHistory(DATA_HIST, 5000).filter((r) => r.fwd != null);
+        const dayStart = new Date();
+        dayStart.setHours(0, 0, 0, 0);
+        const today = rows.filter((r) => r.t >= dayStart.getTime());
+        const body = JSON.stringify({ ...dailyCost(today.length ? today : rows.slice(-2)), points: today.length });
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+        res.end(body);
+      } catch {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end('{"kwh":0,"thb":0,"points":0}');
+      }
       return;
     }
     if (pathname === '/api/tuyalog' && req.method === 'GET') {
