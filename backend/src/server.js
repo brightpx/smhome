@@ -4,8 +4,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pollAll, getReal, getFile, enrichDevices, registry } from './tuyaWeb.js';
 import { readHistory } from './history.js';
+import { loadSubs, saveSubs } from './notify.js';
 import { dailyCost } from './cost.js';
 import { getQr, refreshQr, tuyaHeaders, getSessionCookies, tuyaLog, getProps, getLastError, getWeather } from './poller.js';
+import { getPublicKey } from './notify-vapid.js';
 import { diffSnapshots } from './changes.js';
 
 const FRONT = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../frontend');
@@ -37,7 +39,7 @@ export function startServer(port = 0, host = '127.0.0.1') {
       return;
     }
     if (pathname === '/') pathname = '/index.html';
-    if (req.method === 'GET' && ['/index.html', '/app.js', '/theme.css', '/manifest.json'].includes(pathname)) {
+    if (req.method === 'GET' && ['/index.html', '/app.js', '/theme.css', '/manifest.json', '/sw.js'].includes(pathname)) {
       try {
         const rel = pathname === '/theme.css' ? 'src/theme.css' : pathname.slice(1);
         const file = path.join(FRONT, rel);
@@ -136,7 +138,7 @@ export function startServer(port = 0, host = '127.0.0.1') {
       const live = getReal() || getFile();
       const rel = relay && Date.now() - relay.updatedAt < 120000 ? { ...relay, devices: enrichDevices(relay.devices, registry()), source: relay.source || 'browser-relay' } : null;
       const base = rel || live || { ...pollAll(), source: 'mock' };
-      if (rel) base.onCount = (base.devices || []).filter((d) => d.online).length;
+      base.onCount = (base.devices || []).filter((d) => d.online).length;
       const body = JSON.stringify(base);
       res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
       res.end(body);
@@ -151,9 +153,11 @@ export function startServer(port = 0, host = '127.0.0.1') {
           incoming.updatedAt = incoming.updatedAt || Date.now();
           if (incoming.devices) {
             incoming.devices = enrichDevices(incoming.devices, registry());
+            incoming.onCount = incoming.devices.filter((d) => d.online).length;
             if (relay && relay.devices) appendEvents(diffSnapshots(relay, incoming));
+            if (relay && relay.power && !incoming.power) incoming.power = relay.power;
             relay = incoming;
-            if (Date.now() - lastPersist > 60000 && (relay.source === 'auto-poller' || relay.source === 'browser-relay')) {
+            if (Date.now() - lastPersist > 60000 && (relay.power?.meter || relay.power?.solar)) {
               lastPersist = Date.now();
               try { fs.mkdirSync(DATA_DIR, { recursive: true }); fs.writeFileSync(path.join(DATA_DIR, 'live.json'), JSON.stringify(relay)); } catch {}
             }
@@ -176,15 +180,28 @@ export function startServer(port = 0, host = '127.0.0.1') {
       });
       return;
     }
+    if (pathname === '/api/vapid-pubkey' && req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+      res.end(JSON.stringify({ publicKey: getPublicKey() }));
+      return;
+    }
     if (pathname === '/api/push/subscribe' && req.method === 'POST') {
       let data = '';
       req.on('data', (c) => (data += c));
       req.on('end', () => {
         try {
-          subs.push(JSON.parse(data || '{}'));
-        } catch {}
-        res.writeHead(201, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true, count: subs.length }));
+          const sub = JSON.parse(data || '{}');
+          if (sub && sub.endpoint) {
+            const subs = loadSubs(DATA_DIR).filter((s) => s.endpoint !== sub.endpoint);
+            subs.push(sub);
+            saveSubs(DATA_DIR, subs);
+          }
+          res.writeHead(201, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+          res.end(JSON.stringify({ ok: true }));
+        } catch {
+          res.writeHead(400);
+          res.end('bad sub');
+        }
       });
       return;
     }

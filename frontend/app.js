@@ -49,6 +49,35 @@ async function showLog(id, name) {
 let tickTimer = null, cd = 5, busy = false;
 setInterval(() => { cd = Math.max(0, cd - 1); const e = el('cd'); if (e) e.textContent = 'รีเฟรชใน ' + cd + 'วิ'; }, 1000);
 function manualRefresh() { cd = 5; tick(true); }
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+async function togglePush() {
+  try {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) { alert('เบราว์เซอร์นี้ไม่รองรับ push'); return; }
+    const reg = await navigator.serviceWorker.register('/sw.js');
+    const ready = await navigator.serviceWorker.ready;
+    let sub = await ready.pushManager.getSubscription();
+    if (sub) {
+      await sub.unsubscribe();
+      const b = document.getElementById('bellBtn');
+      if (b) b.textContent = '🔕';
+      return;
+    }
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') { alert('ต้องอนุญาต notification ก่อน'); return; }
+    const { publicKey } = await (await fetch('/api/vapid-pubkey')).json();
+    if (!publicKey) { alert('server ยังไม่มี VAPID key (รัน backend ใหม่แล้วลองอีกที)'); return; }
+    sub = await ready.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(publicKey) });
+    await fetch('/api/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sub.toJSON()) });
+    const b = document.getElementById('bellBtn');
+    if (b) b.textContent = '🔔';
+    alert('เปิดแจ้งเตือนแล้ว');
+  } catch (e) { alert('สมัครไม่สำเร็จ: ' + (e && e.message ? e.message : e)); }
+}
 async function tick(manual) {
   if (busy) return;
   busy = true;

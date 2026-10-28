@@ -2,11 +2,40 @@ import { startServer } from './server.js';
 import { refreshReal } from './tuyaWeb.js';
 import { recordSnapshot, readHistory } from './history.js';
 import { pollOnce } from './poller.js';
+import { shouldAlert, sendAll, detectAlerts } from './notify.js';
+import { ensureVapidKeys } from './notify-vapid.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const HIST = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../data/history');
 const PROFILE = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../data/profile');
+const DATADIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../data');
+const lastSent = {};
+let lastOnline = null;
+const COOL = 60 * 60 * 1000;
+
+async function checkAlerts() {
+  try {
+    const d = await (await fetch(`${url}/api/devices`)).json();
+    if (!d || d.source === 'mock' || !Array.isArray(d.devices)) return;
+    const now = Date.now();
+    const alerts = detectAlerts(lastOnline, d, {});
+    lastOnline = Object.fromEntries(d.devices.map((x) => [x.id, !!x.online]));
+    const keys = await ensureVapidKeys().catch(() => null);
+    if (!keys) return;
+    const { default: webpush } = await import('web-push');
+    webpush.setVapidDetails(keys.subject || 'mailto:admin@smarthome.local', keys.publicKey, keys.privateKey);
+    for (const [key, msg] of alerts) {
+      if (!shouldAlert(key, lastSent, now, COOL)) continue;
+      await sendAll(DATADIR, msg, (s) => webpush.sendNotification(s, JSON.stringify(msg)));
+      lastSent[key] = now;
+    }
+  } catch (e) {
+    console.error('alerts failed:', e.message);
+  }
+}
+setInterval(checkAlerts, 5 * 60 * 1000);
+setTimeout(checkAlerts, 2 * 60 * 1000);
 const port = Number(process.env.PORT || 3001);
 const host = process.env.HOST || (process.env.PORT ? '0.0.0.0' : '127.0.0.1');
 const { url } = await startServer(port, host);

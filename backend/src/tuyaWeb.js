@@ -47,7 +47,8 @@ export function enrichDevices(live, reg) {
   const byId = Object.fromEntries((reg || []).map((d) => [d.id, d]));
   return (live || []).map((d) => {
     const r = byId[d.id] || {};
-    return { ...d, type: d.type || r.type || 'other', gangs: d.gangs || r.gangs };
+    const room = typeof d.room === 'string' && d.room.startsWith('My Home ../') ? d.room.slice('My Home ../'.length) : d.room;
+    return { ...d, room: room || d.room, type: d.type || r.type || 'other', gangs: d.gangs || r.gangs };
   });
 }
 

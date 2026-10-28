@@ -7,5 +7,7 @@ data/profile/
 data/live.json
 data/device-log.jsonl
 data/client.log
+data/vapid.json
+data/push-subs.json
 *.lnk
 *.log
