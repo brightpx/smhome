@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: smarthome
+    runtime: docker
+    plan: starter
+    disk:
+      name: smarthome-data
+      mountPath: /app/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # AUTO_POLL=1 default polls Tuya every 60s via headless browser in data/profile

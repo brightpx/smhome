@@ -1,0 +1,9 @@
+node_modules/
+.git/
+.superpowers/
+data/profile/
+data/history/
+data/device-log.jsonl
+data/client.log
+*.log
+.env
