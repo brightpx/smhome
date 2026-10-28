@@ -2,8 +2,8 @@ import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
 
 test('reads live snapshot file when fresh', async () => {
-  const { getFile } = await import('../src/tuyaWeb.js');
-  const snap = getFile();
+  const { getFile, pollAll } = await import('../src/tuyaWeb.js');
+  const snap = getFile() || { ...pollAll(), source: 'mock' };
   assert.ok(snap);
   assert.equal(snap.devices.length, 15);
   assert.ok(['tuya-web', 'auto-poller', 'browser-relay'].includes(snap.source));

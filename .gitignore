@@ -4,5 +4,8 @@ dist/
 .superpowers/
 data/history/
 data/profile/
+data/live.json
+data/device-log.jsonl
+data/client.log
 *.lnk
 *.log
