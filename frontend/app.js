@@ -17,7 +17,12 @@ async function showLog(id, name) {
     document.getElementById('mBody').innerHTML = log.length ? log.map(e => row(e.detail, '', new Date(e.t).toLocaleString('th-TH'))).join('') : 'ยังไม่มีเหตุการณ์ตั้งแต่เริ่มจด (จดทุกครั้งที่สถานะเปลี่ยน)';
   } catch (e) { document.getElementById('mBody').textContent = 'โหลดไม่ได้'; }
 }
-async function tick() {
+let tickTimer = null, cd = 5, busy = false;
+setInterval(() => { cd = Math.max(0, cd - 1); const el = document.getElementById('cd'); if (el) el.textContent = 'รีเฟรชใน ' + cd + 'วิ'; }, 1000);
+function manualRefresh() { cd = 5; tick(true); }
+async function tick(manual) {
+  if (busy) return;
+  busy = true;
   try {
     const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
     document.getElementById('ver').textContent = 'js: ok ' + new Date().toLocaleTimeString('th-TH');
@@ -33,12 +38,12 @@ async function tick() {
       gridLbl = grid <= 0 ? 'ขายกริด' : 'ดึงกริด';
       gridCol = grid <= 0 ? '#30d158' : '#0a84ff';
     }
-    document.getElementById('live').innerHTML = '<span class="live"><span class="dot"></span>LIVE</span> <span class="staleTag">' + new Date(d.updatedAt).toLocaleTimeString('th-TH') + ' • ' + d.source + '</span>';
+    document.getElementById('live').innerHTML = '<span class="live"><span class="dot"></span>LIVE</span> <span class="staleTag">' + new Date(d.updatedAt).toLocaleTimeString('th-TH') + ' • ' + d.source + '</span> <span class="staleTag" id="cd">รีเฟรชใน 5วิ</span> <button onclick="manualRefresh()" style="background:rgba(10,132,255,.25);border:1px solid rgba(10,132,255,.5);color:#fff;border-radius:10px;min-height:32px;padding:0 10px;font-size:12px">รีเฟรช</button>';
     const ageMin = Math.floor((Date.now() - d.updatedAt) / 60000);
     const staleBanner = ageMin >= 15 ? '<div class="panel" style="border-color:rgba(255,159,10,.5);margin-bottom:10px">ข้อมูลเก่า ' + ageMin + ' นาทีแล้ว — backend ยังไม่ได้รอบใหม่ กดรีเฟรชหน้านี้ไม่ช่วย ต้องป้อนข้อมูลใหม่</div>' : '';
     document.getElementById('warn').innerHTML = staleBanner;
     const solarTxt = solarW == null ? '—' : Math.round(solarW) + ' W';
-    const homeTxt = homeW == null ? '—' : (homeW / 1000).toFixed(2) + ' kW';
+    const homeTxt = homeW == null ? '—' : Math.round(homeW) + ' W';
     const gridDirExport = solarW != null && homeW != null && (homeW - solarW) <= 0;
     document.getElementById('flow').innerHTML = '<svg viewBox="0 0 360 132" style="width:100%;max-width:330px;height:auto;display:block;margin:0 auto" role="img" aria-label="energy flow">'
       + '<defs><marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="none" stroke="#888" stroke-width="1.2"/></marker></defs>'
@@ -86,11 +91,14 @@ async function tick() {
     } catch {}
   } catch (e) {
     const msg = 'โหลดไม่เข้า: ' + (e && e.message ? e.message : e);
-    document.getElementById('live').innerHTML = '<span class="pill off">หลุด — กำลังต่อใหม่</span>';
+    document.getElementById('live').innerHTML = '<span class="pill off">หลุด — กำลังต่อใหม่</span> <button onclick="manualRefresh()" style="background:rgba(10,132,255,.25);border:1px solid rgba(10,132,255,.5);color:#fff;border-radius:10px;min-height:32px;padding:0 10px;font-size:12px">รีเฟรช</button>';
     document.getElementById('warn').innerHTML = '<div class="panel" style="border-color:rgba(255,69,58,.5)">' + msg + ' • เปิดด้วย http://127.0.0.1:3001/ นะ ไม่ใช่ไฟล์</div>';
     try { fetch('/api/clientlog', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ msg, url: location.href }) }); } catch {}
   }
-  setTimeout(tick, 5000);
+  busy = false;
+  clearTimeout(tickTimer);
+  cd = 5;
+  tickTimer = setTimeout(tick, 5000);
   setTimeout(() => document.body.classList.add('seen'), 800);
 }
 tick();
