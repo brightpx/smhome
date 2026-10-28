@@ -71,7 +71,7 @@ async function saveNames(id) {
   alert(r.names ? 'บันทึกแล้ว: ' + r.names.join(', ') : 'บันทึกไม่สำเร็จ');
   tick(true);
 }
-let tickTimer = null, cd = 5, busy = false;
+let tickTimer = null, cd = 5, busy = false, lastLoginNeeded = null;
 setInterval(() => { cd = Math.max(0, cd - 1); const e = el('cd'); if (e) e.textContent = 'รีเฟรชใน ' + cd + 'วิ'; }, 1000);
 function manualRefresh() { cd = 5; tick(true); }
 function urlBase64ToUint8Array(base64String) {
@@ -124,9 +124,8 @@ async function tick(manual) {
     setText('ver', 'js: ok ' + new Date().toLocaleTimeString('th-TH'));
     const r = await fetch('/api/devices');
     const d = await r.json();
-    const [w, c] = await Promise.all([
+    const [w] = await Promise.all([
       fetch('/api/weather').then((x) => x.json()).catch(() => null),
-      fetch('/api/cost').then((x) => x.json()).catch(() => null),
     ]);
     const tempPill = (t) => t == null ? '' : '<span class="pill ' + (t >= 60 ? 'hot' : t >= 50 ? 'warm' : 'cool') + '">โซล่า ' + t + '°C</span>';
     const wxIcon = (code) => {
@@ -151,9 +150,6 @@ async function tick(manual) {
     const wxHtml = w && typeof w.tempC === 'number'
       ? 'บางแคเหนือ ' + w.tempC + '°C'
       : (document.getElementById('wxline') ? document.getElementById('wxline').innerHTML : '');
-    const costHtml = c
-      ? 'วันนี้ใช้ ' + (c.kwh || 0) + ' kWh ≈ ฿' + (c.thb || 0) + ' • โซล่าผลิต ' + (c.solarKwh || 0) + ' kWh ≈ ฿' + (c.savedThb || 0) + ' <span class="staleTag">(เรท 5 บาท/หน่วย ไม่รวม Ft/VAT)</span>'
-      : (document.getElementById('costline') ? document.getElementById('costline').innerHTML : '');
     const wxHourHtml = (w && Array.isArray(w.hours) && w.hours.length)
       ? '<div class="wxhead" onclick="toggleWxHour()"><span class="staleTag">พยากรณ์รายชั่วโมง • บางแคเหนือ</span><span id="wxarrow" class="staleTag">' + (wxCollapsed() ? '▸' : '▾') + '</span></div><div class="wxstrip"' + (wxCollapsed() ? ' style="display:none"' : '') + '>' + w.hours.map((hh) => {
           const isNow = !!hh.now;
@@ -189,7 +185,7 @@ async function tick(manual) {
       + '<text x="45" y="108" text-anchor="middle" fill="#facc15" font-weight="800" font-size="15">' + solarTxt + '</text><text x="45" y="124" text-anchor="middle" fill="#b6c2d3" font-size="10">โซล่า BFAD</text>'
       + '<text x="180" y="108" text-anchor="middle" fill="#fff" font-weight="800" font-size="15">' + homeTxt + '</text><text x="180" y="124" text-anchor="middle" fill="#b6c2d3" font-size="10">ใช้ในบ้าน</text>'
       + '<text x="315" y="108" text-anchor="middle" fill="' + gridCol + '" font-weight="800" font-size="15">' + gridTxt + '</text><text x="315" y="124" text-anchor="middle" fill="#b6c2d3" font-size="10">' + gridLbl + '</text></svg>'
-      + (p.meter ? '<div class="staleTag">ไฟ ' + p.meter.voltage + 'V • กระแส ' + (p.meter.currentA != null ? p.meter.currentA + 'mA • PF ' + p.meter.pf : '—') + '<br>ใช้สะสม ' + p.meter.forwardKwh + ' kWh • ขายสะสม ' + p.meter.reverseKwh + ' kWh' + (p.solar && p.solar.temp != null ? ' • ' + tempPill(p.solar.temp) + (p.solar.temp >= 60 ? ' <b style="color:#ff453a">ร้อนจัด!</b>' : '') : '') + '</div>' : '<div class="staleTag">ค่า mock — รอข้อมูลมิเตอร์</div>') + '<div id="costline" class="staleTag">' + costHtml + '</div><div id="wxline" class="staleTag">' + wxHtml + '</div><div id="wxhour" class="wxcard">' + wxHourHtml + '</div>');
+      + (p.meter ? '<div class="staleTag">ไฟ ' + p.meter.voltage + 'V • กระแส ' + (p.meter.currentA != null ? p.meter.currentA + 'mA • PF ' + p.meter.pf : '—') + '<br>ใช้สะสม ' + p.meter.forwardKwh + ' kWh • ขายสะสม ' + p.meter.reverseKwh + ' kWh' + (p.solar && p.solar.temp != null ? ' • ' + tempPill(p.solar.temp) + (p.solar.temp >= 60 ? ' <b style="color:#ff453a">ร้อนจัด!</b>' : '') : '') + '</div>' : '<div class="staleTag">ค่า mock — รอข้อมูลมิเตอร์</div>') + '<div id="wxline" class="staleTag">' + wxHtml + '</div><div id="wxhour" class="wxcard">' + wxHourHtml + '</div>');
     const onGangs = d.devices.flatMap(x => x.gangs || []).filter(g => g.on).length;
     const offCount = d.devices.length - d.onCount;
     setText('devTitle', 'ออนไลน์ ' + d.onCount + ' • เปิดจริง ' + onGangs + ' ช่อง • ดับ ' + offCount);
@@ -214,11 +210,17 @@ async function tick(manual) {
     try {
       const st = await (await fetch('/api/status')).json();
       if (st.loginNeeded) {
-        setHtml('qrbox', '<div class="panel" style="border-color:rgba(255,159,10,.5);margin-bottom:10px;text-align:center">เชื่อมต่อ Tuya หลุด — เปิดแอป Smart Life สแกน QR นี้<br><span class="staleTag">QR เปลี่ยนทุกครั้งที่โหลด ถ้าสแกนไม่ทันให้รีเฟรช</span><img src="/api/qr?t=' + Date.now() + '" style="max-width:220px;display:block;margin:8px auto;border-radius:12px"></div>');
-      } else if (st.autoError && ageMin >= 5) {
-        setHtml('qrbox', '<div class="panel" style="margin-bottom:10px;text-align:center">ดึงข้อมูลอัตโนมัติขัดข้อง (' + esc(st.autoError.message) + ') — กำลังลองใหม่เอง</div>');
+        if (lastLoginNeeded !== true) {
+          lastLoginNeeded = true;
+          setHtml('qrbox', '<div class="panel" style="border-color:rgba(255,159,10,.5);margin-bottom:10px;text-align:center">เชื่อมต่อ Tuya หลุด — เปิดแอป Smart Life สแกน QR นี้<br><span class="staleTag">QR นี้ค้างจนสแกนสำเร็จ ไม่ต้องรีเฟรชหนี</span><img src="/api/qr?t=' + Date.now() + '" style="max-width:220px;display:block;margin:8px auto;border-radius:12px"></div>');
+        }
       } else {
-        setHtml('qrbox', '');
+        lastLoginNeeded = false;
+        if (st.autoError && ageMin >= 5) {
+          setHtml('qrbox', '<div class="panel" style="margin-bottom:10px;text-align:center">ดึงข้อมูลอัตโนมัติขัดข้อง (' + esc(st.autoError.message) + ') — กำลังลองใหม่เอง</div>');
+        } else {
+          setHtml('qrbox', '');
+        }
       }
     } catch {}
   } catch (e) {
