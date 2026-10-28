@@ -30,7 +30,7 @@ export function parseProps(id, props, names) {
     return { power: { meter: { powerW: o.p_tot / 10, voltage: o.v / 10, forwardKwh: o.fwd_acc_kwh / 100, reverseKwh: o.rev_acc_kwh / 100, currentA: o.a_i, pf: o.a_pf == null ? null : o.a_pf / 100 } } };
   }
   if (id === INV) {
-    return { power: { solar: { pvW: o.pv_power / 10, acW: o.ac_power / 10, totalKwh: o.power_total / 1000, temp: o.temp_current / 10 } } };
+    return { power: { solar: { pvW: o.pv_power / 10, acW: o.ac_power / 10, totalKwh: o.power_total / 1000, temp: o.temp_current } } };
   }
   const sw = Object.keys(o).filter((k) => /^switch_\d+$/.test(k)).sort();
   const count = Math.max(sw.length, (names || []).length);
