@@ -6,10 +6,9 @@ WORKDIR /app
 COPY backend/package.json backend/package-lock.json ./backend/
 RUN cd backend && npm ci --omit=dev
 
-# App code
+# App code (data/ is created at runtime; disk mount covers it in prod)
 COPY backend ./backend
 COPY frontend ./frontend
-COPY data ./data
 COPY package.json ./
 
 ENV NODE_ENV=production

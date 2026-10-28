@@ -8,7 +8,8 @@ import { getQr, refreshQr, tuyaHeaders, getSessionCookies, tuyaLog } from './pol
 import { diffSnapshots } from './changes.js';
 
 const FRONT = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../frontend');
-const DATA_HIST = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../data/history');
+const DATA_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../data');
+const DATA_HIST = path.join(DATA_DIR, 'history');
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'application/javascript', '.css': 'text/css', '.json': 'application/json' };
 
 export function startServer(port = 0, host = '127.0.0.1') {
@@ -117,7 +118,7 @@ export function startServer(port = 0, host = '127.0.0.1') {
             relay = incoming;
             if (Date.now() - lastPersist > 60000 && (relay.source === 'auto-poller' || relay.source === 'browser-relay')) {
               lastPersist = Date.now();
-              try { fs.writeFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '../../data/live.json'), JSON.stringify(relay)); } catch {}
+              try { fs.mkdirSync(DATA_DIR, { recursive: true }); fs.writeFileSync(path.join(DATA_DIR, 'live.json'), JSON.stringify(relay)); } catch {}
             }
           } else {
             relay = incoming;
