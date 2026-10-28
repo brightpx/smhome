@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pollAll, getReal, getFile, enrichDevices, registry } from './tuyaWeb.js';
 import { readHistory } from './history.js';
-import { getQr, refreshQr, tuyaHeaders, getSessionCookies, tuyaLog } from './poller.js';
+import { getQr, refreshQr, tuyaHeaders, getSessionCookies, tuyaLog, getProps } from './poller.js';
 import { diffSnapshots } from './changes.js';
 
 const FRONT = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../frontend');
@@ -63,6 +63,17 @@ export function startServer(port = 0, host = '127.0.0.1') {
         res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
         res.end('[]');
       }
+      return;
+    }
+    if (pathname === '/api/rawprops' && req.method === 'GET') {
+      const u = new URL(req.url, 'http://x');
+      getProps(u.searchParams.get('dev_id') || '').then((arr) => {
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+        res.end(JSON.stringify(arr));
+      }).catch(() => {
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+        res.end(JSON.stringify({ error: 'tuya-props-unavailable' }));
+      });
       return;
     }
     if (pathname === '/api/tuyalog' && req.method === 'GET') {

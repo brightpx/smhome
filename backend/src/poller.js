@@ -84,6 +84,26 @@ export function getSessionCookies() {
   return sessionCookies;
 }
 
+export async function getProps(devId) {
+  await refreshSessionCookies();
+  const r = await fetch('https://us.device.tuya.ai/open-api/v2.0/m/sdf/ss/devices/properties', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json;charset=UTF-8',
+      'micro-app-code': '@tuya-fe/smart2c-app-device',
+      'micro-app-id': '2031674305368031282',
+      'project-id': '69459073',
+      'isolation-type': 'homeId',
+      uid: 'az1650764274804vous3',
+      cookie: sessionCookies
+    },
+    body: JSON.stringify({ device_ids: [devId] })
+  });
+  if (!r.ok) throw new Error('tuya ' + r.status);
+  const j = await r.json();
+  return (j.result || {})[devId] || [];
+}
+
 export async function tuyaLog(devId, hours = 24) {
   await refreshSessionCookies();
   const end = Date.now();
