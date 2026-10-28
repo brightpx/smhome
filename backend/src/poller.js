@@ -54,6 +54,18 @@ export function mergeSnapshot(devices, gangsById, power) {
 let ctx = null;
 let qrShot = null;
 let qrPage = null;
+let weatherCache = null;
+export async function getWeather() {
+  if (weatherCache && Date.now() - weatherCache.at < 10 * 60 * 1000) return weatherCache.data;
+  const lat = process.env.HOME_LAT || '13.7563';
+  const lon = process.env.HOME_LON || '100.5018';
+  const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2,weather_code&timezone=Asia%2FBangkok`);
+  if (!r.ok) throw new Error('weather ' + r.status);
+  const j = await r.json();
+  const data = { tempC: j.current.temperature_2, code: j.current.weather_code, at: Date.now() };
+  weatherCache = { at: Date.now(), data };
+  return data;
+}
 
 export function getQr() {
   return qrShot;

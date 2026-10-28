@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { pollAll, getReal, getFile, enrichDevices, registry } from './tuyaWeb.js';
 import { readHistory } from './history.js';
 import { dailyCost } from './cost.js';
-import { getQr, refreshQr, tuyaHeaders, getSessionCookies, tuyaLog, getProps, getLastError } from './poller.js';
+import { getQr, refreshQr, tuyaHeaders, getSessionCookies, tuyaLog, getProps, getLastError, getWeather } from './poller.js';
 import { diffSnapshots } from './changes.js';
 
 const FRONT = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../frontend');
@@ -90,6 +90,16 @@ export function startServer(port = 0, host = '127.0.0.1') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end('{"kwh":0,"thb":0,"points":0}');
       }
+      return;
+    }
+    if (pathname === '/api/weather' && req.method === 'GET') {
+      getWeather().then((w) => {
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+        res.end(JSON.stringify(w));
+      }).catch(() => {
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+        res.end(JSON.stringify({ error: 'weather-unavailable' }));
+      });
       return;
     }
     if (pathname === '/api/tuyalog' && req.method === 'GET') {
