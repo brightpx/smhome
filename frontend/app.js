@@ -2,6 +2,30 @@ function el(id) { return document.getElementById(id); }
 function setHtml(id, html) { const e = el(id); if (e) e.innerHTML = html; }
 function setText(id, txt) { const e = el(id); if (e) e.textContent = txt; }
 const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+function showTab(which) {
+  const d = document.getElementById('devices'), t = document.getElementById('timeline');
+  const bd = document.getElementById('tabDev'), bt = document.getElementById('tabTl');
+  if (which === 'tl') {
+    if (d) d.style.display = 'none';
+    if (t) { t.style.display = 'block'; loadTimeline(); }
+    if (bd) bd.style.background = 'rgba(255,255,255,.06)';
+    if (bt) bt.style.background = 'rgba(10,132,255,.25)';
+  } else {
+    if (d) d.style.display = '';
+    if (t) t.style.display = 'none';
+    if (bd) bd.style.background = 'rgba(10,132,255,.25)';
+    if (bt) bt.style.background = 'rgba(255,255,255,.06)';
+  }
+}
+async function loadTimeline() {
+  const t = document.getElementById('timeline');
+  if (!t) return;
+  t.textContent = 'โหลด…';
+  try {
+    const log = await (await fetch('/api/devicelog')).json();
+    t.innerHTML = log.length ? log.slice(0, 60).map(e => '<div class="row"><span><b>' + esc(e.name || '') + '</b> — ' + esc(e.detail || '') + '</span><span class="staleTag">' + new Date(e.t).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + '</span></div>').join('') : 'ยังไม่มีเหตุการณ์';
+  } catch (e) { t.textContent = 'โหลดไม่ได้'; }
+}
 async function showLog(id, name) {
   setText('mTitle', name);
   const mf = el('mFull');

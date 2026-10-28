@@ -21,6 +21,7 @@ test('serves frontend page with flow and devices', async () => {
     assert.ok(page.includes('1024px'));
     assert.ok(page.includes('/apps/2031674305368031282/'));
     assert.ok(page.includes('mBody'));
+    assert.ok(page.includes('ไทม์ไลน์'));
     const hist = await (await fetch(`${url}/api/history`)).json();
     assert.ok(Array.isArray(hist));
   } finally {
