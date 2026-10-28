@@ -17,3 +17,11 @@ test('enriches relay devices with registry type and gangs', async () => {
   assert.equal(out.find((d) => d.id === 'm1').gangs[0].on, false);
   assert.equal(out.find((d) => d.id === 's1').gangs[0].on, true);
 });
+
+test('namemap overrides names keeping states', async () => {
+  const { enrichDevices } = await import('../src/tuyaWeb.js');
+  const live = [{ id: 'x', name: 'X', room: 'R', online: true, gangs: [{ name: 'old', on: true }, { name: 'old2', on: false }] }];
+  const out = enrichDevices(live, [], { x: ['A', 'B'] });
+  assert.deepEqual(out[0].gangs.map((g) => g.name), ['A', 'B']);
+  assert.deepEqual(out[0].gangs.map((g) => g.on), [true, false]);
+});

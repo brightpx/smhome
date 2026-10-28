@@ -17,3 +17,9 @@ export function renderFlow({ solarKw, homeKw, stale, online = true }) {
   const grid = calcGrid(solarKw, homeKw);
   return `<div>${solarKw} → ${homeKw} → ${grid}</div>`;
 }
+
+export function solarTempPill(t) {
+  if (t == null) return '';
+  const cls = t >= 60 ? 'hot' : t >= 50 ? 'warm' : 'cool';
+  return `<span class="pill ${cls}">โซล่า ${t}°C</span>`;
+}

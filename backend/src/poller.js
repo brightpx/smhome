@@ -1,12 +1,12 @@
 const METER = 'eb0b9857bf4d24e73aujri';
 const INV = 'eb050f906c2cbd90f0vmwd';
 const NAMES = {
-  eb2c311bb821f7630c9wvg: ['Switch 1', 'Switch 2', 'Switch 3'],
-  eb19bec12f89f86d19aff6: ['Switch 1', 'Switch 2', 'Switch 3'],
-  ebdfed963b861a03bfhgfi: ['Switch 1', 'Switch 2', 'Switch 3', 'Switch 4'],
-  eb0e07cbd548caba3ezvyt: ['Switch 1', 'Switch 2', 'Switch 3', 'Switch 4'],
-  eb6830635d5a2f6bc0wycq: ['Circle', 'Downlight', 'ช่อง 3', 'ช่อง 4'],
-  '022553357c87ce8b9eea': ['ไฟกลมหน้า', 'ไฟดาวไลท์'],
+  eb2c311bb821f7630c9wvg: ['ไฟเลขที่บ้าน', 'ไฟโรงรถ', 'ไฟหน้าบ้าน link'],
+  eb19bec12f89f86d19aff6: ['ระเบียง', 'ไฟสวย', 'ไฟสวย2'],
+  ebdfed963b861a03bfhgfi: ['Bedlight', 'Circle3', 'Strip3', 'Downlight3'],
+  'eb0e07cbd548caba3ezvyt': ['Downlight2sd', 'ห้องเก็บ', 'Circle2sd', 'Tricklightlink'],
+  'eb6830635d5a2f6bc0wycq': ['Strip1ft', 'Circle1ft', 'ไฟหน้าประตู', 'Downlight1ft'],
+  '022553357c87ce8b9eea': ['ไฟกลมหลัง', 'ไฟกลมหน้า', 'ไฟดาวไลท์'],
   '022553357c87ce8b9f09': ['ไฟฝ้า', 'ไฟหน้าประตูหลัง', 'ไฟระเบียงหลัง']
 };
 const SW_IDS = Object.keys(NAMES);
@@ -55,14 +55,45 @@ let ctx = null;
 let qrShot = null;
 let qrPage = null;
 let weatherCache = null;
+export function homeCoords() {
+  return { lat: process.env.HOME_LAT || '13.71', lon: process.env.HOME_LON || '100.41' };
+}
+export function nextHours(j, nowMs = Date.now(), n = 12, prev = 3) {
+  const h = (j && j.hourly) || {};
+  const bkk = (s) => {
+    const m = /^(\d+)-(\d+)-(\d+)T(\d+):(\d+)/.exec(s || '');
+    if (!m) return NaN;
+    return Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) - 7 * 3600e3;
+  };
+  const times = h.time || [];
+  let cur = times.length;
+  for (let i = 0; i < times.length; i++) {
+    const t = bkk(times[i]);
+    if (!Number.isFinite(t)) continue;
+    if (t <= nowMs && nowMs < t + 3600e3) { cur = i; break; }
+    if (t > nowMs) { cur = i; break; }
+  }
+  const out = [];
+  for (let i = Math.max(0, cur - prev); i < times.length && out.length < n; i++) {
+    const t = bkk(times[i]);
+    if (!Number.isFinite(t)) continue;
+    out.push({
+      t,
+      tempC: h.temperature_2m ? h.temperature_2m[i] : null,
+      code: h.weather_code ? h.weather_code[i] : null,
+      precip: h.precipitation_probability ? h.precipitation_probability[i] : null,
+      now: i === cur,
+    });
+  }
+  return out;
+}
 export async function getWeather() {
   if (weatherCache && Date.now() - weatherCache.at < 10 * 60 * 1000) return weatherCache.data;
-  const lat = process.env.HOME_LAT || '13.7563';
-  const lon = process.env.HOME_LON || '100.5018';
-  const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2,weather_code&timezone=Asia%2FBangkok`);
+  const { lat, lon } = homeCoords();
+  const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&hourly=temperature_2m,weather_code,precipitation_probability&timezone=Asia%2FBangkok`);
   if (!r.ok) throw new Error('weather ' + r.status);
   const j = await r.json();
-  const data = { tempC: j.current.temperature_2, code: j.current.weather_code, at: Date.now() };
+  const data = { tempC: j.current.temperature_2m, code: j.current.weather_code, at: Date.now(), hours: nextHours(j, Date.now(), 12) };
   weatherCache = { at: Date.now(), data };
   return data;
 }
@@ -94,6 +125,35 @@ export function setSessionCookies(s) {
 
 export function getSessionCookies() {
   return sessionCookies;
+}
+
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const GANG_FILE = () => process.env.GANG_NAMES_FILE || path.join(path.dirname(fileURLToPath(import.meta.url)), '../../data/gang-names.json');
+
+export function loadOverrides() {
+  try {
+    return JSON.parse(fs.readFileSync(GANG_FILE(), 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+export function saveNames(id, names) {
+  const f = GANG_FILE();
+  fs.mkdirSync(path.dirname(f), { recursive: true });
+  const all = loadOverrides();
+  all[id] = names.filter((n) => typeof n === 'string').map((n) => n.slice(0, 40));
+  fs.writeFileSync(f, JSON.stringify(all));
+  return all[id];
+}
+
+export function getNames(id) {
+  const ov = loadOverrides()[id];
+  if (Array.isArray(ov) && ov.length) return ov;
+  return NAMES[id];
 }
 
 export async function getProps(devId) {
@@ -247,7 +307,7 @@ export async function pollOnce(profileDir) {
   const gangsById = {};
   const powers = [];
   for (const d of data.devices) {
-    const r = parseProps(d.id, data.props[d.id] || [], NAMES[d.id]);
+    const r = parseProps(d.id, data.props[d.id] || [], getNames(d.id));
     if (r.gangs) gangsById[d.id] = r.gangs;
     if (r.power) powers.push(r);
   }

@@ -6,7 +6,7 @@ import { pollAll, getReal, getFile, enrichDevices, registry } from './tuyaWeb.js
 import { readHistory } from './history.js';
 import { loadSubs, saveSubs } from './notify.js';
 import { dailyCost } from './cost.js';
-import { getQr, refreshQr, tuyaHeaders, getSessionCookies, tuyaLog, getProps, getLastError, getWeather } from './poller.js';
+import { getQr, refreshQr, tuyaHeaders, getSessionCookies, tuyaLog, getProps, getLastError, getWeather, loadOverrides, saveNames, getNames } from './poller.js';
 import { getPublicKey } from './notify-vapid.js';
 import { diffSnapshots } from './changes.js';
 
@@ -59,7 +59,7 @@ export function startServer(port = 0, host = '127.0.0.1') {
         const id = u.searchParams.get('dev_id');
         const raw = fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '../../data/device-log.jsonl'), 'utf8').trim();
         const rows = raw ? raw.split('\n').map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean) : [];
-        const out = (id ? rows.filter((e) => e.device_id === id) : rows).slice(-50).reverse();
+        const out = (id ? rows.filter((e) => e.device_id === id) : rows).slice(-200).reverse();
         res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
         res.end(JSON.stringify(out));
       } catch {
@@ -108,7 +108,7 @@ export function startServer(port = 0, host = '127.0.0.1') {
       const u = new URL(req.url, 'http://x');
       tuyaLog(u.searchParams.get('dev_id') || '', Number(u.searchParams.get('hours') || 24)).then((rows) => {
         res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
-        res.end(JSON.stringify((rows || []).slice(0, 50)));
+        res.end(JSON.stringify((rows || []).slice(0, 200)));
       }).catch(() => {
         res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
         res.end(JSON.stringify({ error: 'tuya-log-unavailable' }));
@@ -136,12 +136,37 @@ export function startServer(port = 0, host = '127.0.0.1') {
     }
     if (pathname === '/api/devices' && req.method === 'GET') {
       const live = getReal() || getFile();
-      const rel = relay && Date.now() - relay.updatedAt < 120000 ? { ...relay, devices: enrichDevices(relay.devices, registry()), source: relay.source || 'browser-relay' } : null;
+      const rel = relay && Date.now() - relay.updatedAt < 120000 ? { ...relay, devices: enrichDevices(relay.devices, registry(), loadOverrides()), source: relay.source || 'browser-relay' } : null;
       const base = rel || live || { ...pollAll(), source: 'mock' };
       base.onCount = (base.devices || []).filter((d) => d.online).length;
       const body = JSON.stringify(base);
       res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
       res.end(body);
+      return;
+    }
+    if (pathname === '/api/gangnames' && req.method === 'GET') {
+      const u = new URL(req.url, 'http://x');
+      const id = u.searchParams.get('dev_id');
+      const all = loadOverrides();
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+      res.end(JSON.stringify(id ? { id, names: getNames(id) || [] } : all));
+      return;
+    }
+    if (pathname === '/api/gangnames' && req.method === 'POST') {
+      let data = '';
+      req.on('data', (c) => (data += c));
+      req.on('end', () => {
+        try {
+          const b = JSON.parse(data || '{}');
+          if (!b.id || !Array.isArray(b.names)) throw new Error('bad');
+          const names = saveNames(b.id, b.names);
+          res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+          res.end(JSON.stringify({ ok: true, names }));
+        } catch {
+          res.writeHead(400);
+          res.end('bad request');
+        }
+      });
       return;
     }
     if (pathname === '/api/ingest' && req.method === 'POST') {
@@ -152,7 +177,7 @@ export function startServer(port = 0, host = '127.0.0.1') {
           const incoming = JSON.parse(data || '{}');
           incoming.updatedAt = incoming.updatedAt || Date.now();
           if (incoming.devices) {
-            incoming.devices = enrichDevices(incoming.devices, registry());
+            incoming.devices = enrichDevices(incoming.devices, registry(), loadOverrides());
             incoming.onCount = incoming.devices.filter((d) => d.online).length;
             if (relay && relay.devices) appendEvents(diffSnapshots(relay, incoming));
             if (relay && relay.power && !incoming.power) incoming.power = relay.power;

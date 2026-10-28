@@ -43,12 +43,16 @@ export function registry() {
   return _reg.devices;
 }
 
-export function enrichDevices(live, reg) {
+export function enrichDevices(live, reg, namemap = {}) {
   const byId = Object.fromEntries((reg || []).map((d) => [d.id, d]));
   return (live || []).map((d) => {
     const r = byId[d.id] || {};
     const room = typeof d.room === 'string' && d.room.startsWith('My Home ../') ? d.room.slice('My Home ../'.length) : d.room;
-    return { ...d, room: room || d.room, type: d.type || r.type || 'other', gangs: d.gangs || r.gangs };
+    const names = namemap[d.id] || (d.gangs || []).map((g) => g.name);
+    const states = (d.gangs || []).map((g) => !!g.on);
+    const baseLen = Math.max(names.length, states.length, ((r.gangs || [])).length);
+    const gangs = baseLen ? Array.from({ length: baseLen }, (_, i) => ({ name: names[i] || (r.gangs || [])[i]?.name || ('ช่อง ' + (i + 1)), on: !!states[i] })) : d.gangs || r.gangs;
+    return { ...d, room: room || d.room, type: d.type || r.type || 'other', gangs };
   });
 }
 
