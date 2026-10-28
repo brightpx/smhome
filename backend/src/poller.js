@@ -196,7 +196,9 @@ export async function pollOnce(profileDir) {
   }
   qrShot = null;
   qrPage = null;
-  const data = await page.evaluate(async () => {
+  let data;
+  try {
+    data = await page.evaluate(async () => {
     const H = { 'Content-Type': 'application/json;charset=UTF-8', 'micro-app-code': '@tuya-fe/smart2c-app-device', 'micro-app-id': '2031674305368031282', 'project-id': '69459073', 'isolation-type': 'homeId', uid: 'az1650764274804vous3' };
     const q = await fetch('/open-api/v1.0/m/sdf/device/pag/source-query', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ project_id: '69459073', page_no: 1, page_size: 20 }) });
     const j = await q.json();
@@ -211,6 +213,16 @@ export async function pollOnce(profileDir) {
     }
     return { devices, props };
   });
+  } catch (e) {
+    try {
+      if (page.url().includes('/login')) {
+        qrPage = page;
+        qrShot = await pageShot(page);
+        return { login: true };
+      }
+    } catch {}
+    throw e;
+  }
   const gangsById = {};
   const powers = [];
   for (const d of data.devices) {
