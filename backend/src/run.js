@@ -8,7 +8,8 @@ import { fileURLToPath } from 'node:url';
 const HIST = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../data/history');
 const PROFILE = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../data/profile');
 const port = Number(process.env.PORT || 3001);
-const { url } = await startServer(port);
+const host = process.env.HOST || (process.env.PORT ? '0.0.0.0' : '127.0.0.1');
+const { url } = await startServer(port, host);
 console.log(`backend ready at ${url}`);
 const snapOnce = async () => {
   try {

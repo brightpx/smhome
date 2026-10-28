@@ -11,10 +11,11 @@ const FRONT = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../fro
 const DATA_HIST = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../data/history');
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'application/javascript', '.css': 'text/css', '.json': 'application/json' };
 
-export function startServer(port = 0) {
+export function startServer(port = 0, host = '127.0.0.1') {
   const subs = [];
   let relay = null;
   const server = http.createServer((req, res) => {
+    let lastPersist = 0;
     const DEVLOG = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../data/device-log.jsonl');
     const appendEvents = (events) => {
       if (!events.length) return;
@@ -114,6 +115,10 @@ export function startServer(port = 0) {
             incoming.devices = enrichDevices(incoming.devices, registry());
             if (relay && relay.devices) appendEvents(diffSnapshots(relay, incoming));
             relay = incoming;
+            if (Date.now() - lastPersist > 60000 && (relay.source === 'auto-poller' || relay.source === 'browser-relay')) {
+              lastPersist = Date.now();
+              try { fs.writeFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '../../data/live.json'), JSON.stringify(relay)); } catch {}
+            }
           } else {
             relay = incoming;
           }
@@ -181,10 +186,11 @@ export function startServer(port = 0) {
     res.end('not found');
   });
   return new Promise((resolve) => {
-    server.listen(port, '127.0.0.1', () => {
+    server.listen(port, host, () => {
       const addr = server.address();
+      const shown = host === '0.0.0.0' ? 'localhost' : host;
       resolve({
-        url: `http://127.0.0.1:${addr.port}`,
+        url: `http://${shown}:${addr.port}`,
         close: () => new Promise((r) => server.close(r))
       });
     });

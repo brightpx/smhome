@@ -163,7 +163,7 @@ async function ensurePage() {
 export async function pollOnce(profileDir) {
   const { chromium } = await import('playwright');
   if (!ctx) {
-    const browser = await chromium.launchPersistentContext(profileDir, { headless: true });
+    const browser = await chromium.launchPersistentContext(profileDir, { headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
     ctx = { browser, page: browser.pages()[0] || await browser.newPage() };
   }
   const page = ctx.page;
