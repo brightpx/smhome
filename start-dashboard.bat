@@ -1,6 +1,6 @@
 @echo off
 REM Smart Home dashboard - one click start.
-REM Frees port 3001, starts backend minimized, waits until healthy, opens browser.
+REM Frees port 3001, starts backend, waits until healthy, opens browser.
 cd /d %~dp0
 
 where node >nul 2>&1
@@ -20,6 +20,15 @@ if not exist backend\node_modules (
   cd backend
   call npm install
   cd /d %~dp0
+)
+
+if not exist "%USERPROFILE%\.cache\ms-playwright" (
+  if not exist "C:\Users\%USERNAME%\AppData\Local\ms-playwright" (
+    echo Installing browser binaries (one time, ~120MB)...
+    cd backend
+    call npx playwright install chromium
+    cd /d %~dp0
+  )
 )
 
 start "smarthome-backend" /min node backend/src/run.js
