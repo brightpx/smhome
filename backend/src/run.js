@@ -1,3 +1,6 @@
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+try { require('dotenv').config({ path: new URL('../../.env', import.meta.url) }); } catch {}
 import { startServer } from './server.js';
 import { refreshReal } from './tuyaWeb.js';
 import { recordSnapshot, readHistory } from './history.js';
