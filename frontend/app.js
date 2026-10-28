@@ -29,7 +29,7 @@ async function tick() {
     let gridTxt = '—', gridLbl = 'รอข้อมูล', gridCol = '#b6c2d3';
     if (solarW != null && homeW != null) {
       const grid = Math.round((homeW - solarW) * 10) / 10;
-      gridTxt = (Math.abs(grid) / 1000).toFixed(2) + ' kW';
+      gridTxt = Math.round(Math.abs(grid)) + ' W';
       gridLbl = grid <= 0 ? 'ขายกริด' : 'ดึงกริด';
       gridCol = grid <= 0 ? '#30d158' : '#0a84ff';
     }
