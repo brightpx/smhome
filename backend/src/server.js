@@ -44,7 +44,7 @@ export function startServer(port = 0, host = '127.0.0.1') {
         const rel = pathname === '/theme.css' ? 'src/theme.css' : pathname.slice(1);
         const file = path.join(FRONT, rel);
         const data = fs.readFileSync(file);
-        res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream' });
+        res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
         res.end(data);
         return;
       } catch {
