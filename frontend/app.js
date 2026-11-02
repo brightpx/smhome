@@ -167,7 +167,7 @@ async function tick(manual) {
       const grid = Math.round(homeW * 10) / 10, home = Math.round((solarW + homeW) * 10) / 10;
       gridTxt = Math.round(Math.abs(grid)) + ' W';
       gridLbl = grid <= 0 ? 'ขายกริด' : 'ดึงกริด';
-      gridCol = grid <= 0 ? '#30d158' : '#0a84ff';
+      gridCol = grid <= 0 ? '#30d158' : '#ff453a';
       homeTxt = Math.round(home) + ' W';
     }
     setHtml('live', '<span class="live"><span class="dot"></span>LIVE</span> <span class="staleTag">' + new Date(d.updatedAt).toLocaleTimeString('th-TH') + ' • ' + d.source + '</span> <span class="staleTag" id="cd">รีเฟรชใน 5วิ</span> <button onclick="manualRefresh()" style="background:rgba(10,132,255,.25);border:1px solid rgba(10,132,255,.5);color:#fff;border-radius:10px;min-height:32px;padding:0 10px;font-size:12px">รีเฟรช</button>');
